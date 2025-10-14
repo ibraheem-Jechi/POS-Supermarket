@@ -26,6 +26,10 @@ const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_po
 const saleRoutes = require('./routes/saleRoutes');
 app.use('/api/sales', saleRoutes);
 
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
+
 mongoose.connect(MONGO)
   .then(() => {
     console.log('✅ MongoDB connected');

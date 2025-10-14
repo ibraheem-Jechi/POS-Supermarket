@@ -7,6 +7,129 @@
   pointer-events: none;
 }
 
+/* === General Layout === */
+body {
+  font-family: 'Poppins', Arial, sans-serif;
+  background-color: #f4f6f8;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+/* Main POS container */
+.pos-container {
+  max-width: 900px;
+  margin: 40px auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 30px 40px;
+}
+
+/* Headers */
+.pos-container h2 {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.pos-container h3 {
+  margin-top: 25px;
+  color: #34495e;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 5px;
+}
+
+/* Product & Cart Lists */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0;
+}
+
+li {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: 0.2s;
+}
+
+li:hover {
+  background: #f9f9f9;
+  border-color: #ccc;
+}
+
+/* Buttons */
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+/* Add to Cart Button */
+button.add {
+  background-color: #27ae60;
+  color: white;
+}
+
+button.add:hover {
+  background-color: #219150;
+}
+
+/* Remove Button */
+button.remove {
+  background-color: #e74c3c;
+  color: white;
+}
+
+button.remove:hover {
+  background-color: #c0392b;
+}
+
+/* Checkout Button */
+button.checkout {
+  background-color: #2980b9;
+  color: white;
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  font-size: 16px;
+}
+
+button.checkout:hover {
+  background-color: #2471a3;
+}
+
+/* Disabled Button */
+button:disabled {
+  background-color: #ccc !important;
+  cursor: not-allowed;
+}
+
+/* Total and Status */
+.total {
+  text-align: right;
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-top: 10px;
+}
+
+.status {
+  margin-top: 15px;
+  text-align: center;
+  font-weight: 600;
+  color: #16a085;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
