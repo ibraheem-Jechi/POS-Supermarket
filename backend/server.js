@@ -23,6 +23,9 @@ app.use('/api/products', productRoutes);
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
 
+const saleRoutes = require('./routes/saleRoutes');
+app.use('/api/sales', saleRoutes);
+
 mongoose.connect(MONGO)
   .then(() => {
     console.log('✅ MongoDB connected');
