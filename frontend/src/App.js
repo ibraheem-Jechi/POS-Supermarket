@@ -1,33 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import MainContent from './components/MainContent';
 
 function App() {
-  const [status, setStatus] = useState('Loading...');
-  const [products, setProducts] = useState([]);
-
-  useEffect(() => {
-    // backend health check
-    axios.get('http://localhost:5000/')
-      .then(res => setStatus(JSON.stringify(res.data)))
-      .catch(err => setStatus('Backend not reachable'));
-
-    // fetch products
-    axios.get('http://localhost:5000/api/products')
-      .then(res => setProducts(res.data))
-      .catch(() => setProducts([]));
-  }, []);
+  const [page, setPage] = useState('pos'); // default page is POS
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Supermarket POS — Frontend</h2>
-      <p>Backend status: {status}</p>
-
-      <h3>Products</h3>
-      <ul>
-        {products.length ? products.map(p => (
-          <li key={p._id}>{p.name} — ${p.price} — stock: {p.stock}</li>
-        )) : <li>No products found</li>}
-      </ul>
+    <div>
+      <Header />
+      <div style={{ display: 'flex', minHeight: '90vh' }}>
+        <Sidebar setPage={setPage} />
+        <MainContent page={page} />
+      </div>
     </div>
   );
 }
