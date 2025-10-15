@@ -34,4 +34,15 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Get all users (admin only)
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find({}, '-password'); // don’t send password
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
