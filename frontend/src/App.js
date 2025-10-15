@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
-import LoginPage from './components/LoginPage';
-import POSPage from './components/POSPage';
-import AdminDashboard from './components/AdminDashboard';
+import LoginPage from './pages/LoginPage';
+import POSPage from './pages/POS/POSpage';
+import AdminDashboard from './pages/AdminDashboard';
+
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+
+
+
 
 function App() {
   const [user, setUser] = useState(null); // logged-in user
   const [page, setPage] = useState('pos'); // current page
+
+   <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/pos" />} />
+        <Route path="/pos" element={<POSPage />} />
+      </Routes>
+    </BrowserRouter>
 
   // If not logged in, show login page
   if (!user) {

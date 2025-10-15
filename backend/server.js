@@ -20,6 +20,10 @@ app.get('/', (req, res) => {
 const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
 
+
+const cartsRoute = require("./routes/carts");
+app.use("/api/carts", cartsRoute);
+
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
 
