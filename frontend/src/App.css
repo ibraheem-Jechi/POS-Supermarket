@@ -1,3 +1,203 @@
+/* Container */
+.admin-dashboard {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 25px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  background: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+/* Headings */
+.admin-dashboard h2 {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  color: #111827;
+  text-align: center;
+}
+
+.admin-dashboard h3 {
+  font-size: 1.4rem;
+  margin: 20px 0 12px;
+  color: #374151;
+}
+
+/* Status messages */
+.status {
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-align: center;
+  animation: fadein 0.5s ease;
+}
+
+.status.success {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-left: 4px solid #10b981;
+}
+
+.status.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-left: 4px solid #ef4444;
+}
+
+/* Form Card */
+.user-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 15px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  margin-bottom: 25px;
+  align-items: center;
+}
+
+.user-form input,
+.user-form select {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 140px;
+  transition: all 0.2s;
+}
+
+.user-form input:focus,
+.user-form select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+}
+
+.user-form button {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-form button[type="submit"] {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.user-form button[type="submit"]:hover {
+  background-color: #2563eb;
+}
+
+.user-form button.cancel {
+  background-color: #9ca3af;
+  color: #fff;
+}
+
+.user-form button.cancel:hover {
+  background-color: #6b7280;
+}
+
+/* Table Card */
+.table-card {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow-x: auto;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.users-table th,
+.users-table td {
+  padding: 14px 18px;
+  text-align: left;
+}
+
+.users-table th {
+  background: linear-gradient(to right, #3b82f6, #60a5fa);
+  color: #fff;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.users-table tr:nth-child(even) {
+  background-color: #f3f4f6;
+}
+
+.users-table tr:hover {
+  background-color: #e0f2fe;
+  transform: scale(1.01);
+  transition: transform 0.1s;
+}
+
+.users-table button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Buttons */
+.users-table button.edit {
+  background-color: #fbbf24;
+  color: #fff;
+}
+
+.users-table button.edit:hover {
+  background-color: #f59e0b;
+}
+
+.users-table button.delete {
+  background-color: #ef4444;
+  color: #fff;
+}
+
+.users-table button.delete:hover {
+  background-color: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .user-form {
+    flex-direction: column;
+  }
+
+  .user-form input, .user-form select, .user-form button {
+    width: 100%;
+  }
+
+  .users-table {
+    font-size: 0.9rem;
+  }
+}
+
+/* Animations */
+@keyframes fadein {
+  0% { opacity: 0; transform: translateY(-5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 .App {
   text-align: center;
 }
