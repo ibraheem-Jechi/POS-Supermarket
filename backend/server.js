@@ -46,6 +46,10 @@ app.use('/api/auth', authRoutes);
 // --------------------------
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
+const categoryRoutes = require("./routes/categoryRoutes");
+app.use("/api/categories", categoryRoutes);
+
+
 
 mongoose.connect(MONGO)
   .then(() => {

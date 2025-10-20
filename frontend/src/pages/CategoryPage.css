@@ -1,0 +1,60 @@
+.category-container {
+  padding: 20px;
+  background: #f4f6f8;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.category-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.category-form input {
+  padding: 8px;
+  flex: 1;
+}
+
+.category-form button {
+  padding: 8px 12px;
+  background: #2c3e50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+}
+
+.category-item {
+  background: white;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.category-buttons button {
+  margin-right: 10px;
+  padding: 6px 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.category-buttons button:nth-child(1) {
+  background: #3498db;
+  color: white;
+}
+
+.category-buttons button:nth-child(2) {
+  background: #e74c3c;
+  color: white;
+}
+
+.category-buttons button:nth-child(3) {
+  background: #27ae60;
+  color: white;
+}
