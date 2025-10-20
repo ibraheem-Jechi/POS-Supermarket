@@ -10,19 +10,17 @@ const app = express();
 // Middleware
 // --------------------------
 const corsOptions = {
-  origin: 'http://localhost:3000', // your React frontend
+  origin: 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 };
 app.use(cors(corsOptions));
-
-
 app.use(express.json());
 app.use(morgan('dev'));
 
 // --------------------------
-// Basic health-check route
+// Health-check route
 // --------------------------
 app.get('/', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
@@ -38,10 +36,10 @@ const cartsRoute = require("./routes/carts");
 app.use("/api/carts", cartsRoute);
 
 const saleRoutes = require('./routes/saleRoutes');
-app.use('/api/sales', saleRoutes);
+app.use('/api/sales', saleRoutes); // frontend fetches all carts
 
 const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes); // includes /login, /create, and /all
+app.use('/api/auth', authRoutes);
 
 // --------------------------
 // Server & Database Setup

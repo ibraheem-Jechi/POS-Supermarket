@@ -1,16 +1,16 @@
-const mongoose = require("mongoose");
+// routes/saleRoutes.js
+const express = require('express');
+const router = express.Router();
+const Cart = require('../models/carts'); // use your existing cart model
 
-const cartSchema = new mongoose.Schema({
-  lines: [{
-    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-    name: String,
-    price: Number,
-    qty: Number
-  }],
-  subtotal: Number,
-  tax: Number,
-  total: Number,
-  createdAt: { type: Date, default: Date.now }
+// GET all sales (all carts)
+router.get('/', async (req, res) => {
+  try {
+    const carts = await Cart.find().sort({ createdAt: -1 }); // newest first
+    res.json(carts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-module.exports = mongoose.model("Cart", cartSchema);
+module.exports = router;

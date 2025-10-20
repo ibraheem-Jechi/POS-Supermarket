@@ -2,23 +2,11 @@ import React, { useState } from 'react';
 import LoginPage from './pages/LoginPage';
 import POSPage from './pages/POS/POSpage';
 import AdminDashboard from './pages/AdminDashboard';
-
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
-
-
-
+import SalesHistory from './pages/SalesHistory';
 
 function App() {
   const [user, setUser] = useState(null); // logged-in user
   const [page, setPage] = useState('pos'); // current page
-
-   <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/pos" />} />
-        <Route path="/pos" element={<POSPage />} />
-      </Routes>
-    </BrowserRouter>
 
   // If not logged in, show login page
   if (!user) {
@@ -28,7 +16,6 @@ function App() {
   // Dashboard component (shown when clicking "Dashboard")
   const DashboardPage = () => (
     <div>
-      <h2>Dashboard</h2>
       {user.role === 'admin' ? (
         <AdminDashboard user={user} />
       ) : (
@@ -42,7 +29,6 @@ function App() {
   // Products page
   const ProductsPage = () => (
     <div>
-      <h2>Products</h2>
       {user.role === 'admin' ? (
         <p>Admin can manage or edit products here (coming soon).</p>
       ) : (
@@ -96,6 +82,12 @@ function App() {
             Dashboard
           </button>
           <button
+            onClick={() => setPage('salesHistory')}
+            style={{ display: 'block', marginBottom: '10px' }}
+          >
+            Sales History
+          </button>
+          <button
             onClick={() => setUser(null)}
             style={{
               display: 'block',
@@ -117,6 +109,7 @@ function App() {
           {page === 'pos' && <POSPage user={user} />}
           {page === 'products' && <ProductsPage />}
           {page === 'dashboard' && <DashboardPage />}
+          {page === 'salesHistory' && <SalesHistory user={user} />}
         </div>
       </div>
     </div>
