@@ -12,6 +12,7 @@ export default function POSPage({ user }) {
 
   // NEW: category filter state
   const [category, setCategory] = useState("All");
+  const [categories, setCategories] = useState(["All"]);
 
   useEffect(() => {
     setLoading(true);
@@ -19,12 +20,15 @@ export default function POSPage({ user }) {
       .then(res => setProducts(res.data))
       .catch(() => setErr("Failed to load products"))
       .finally(() => setLoading(false));
-  }, []);
 
-  const categories = useMemo(
-    () => ["All", ...Array.from(new Set(products.map(p => p.productCategory)))],
-    [products]
-  );
+    // NEW: Fetch categories from backend
+    axios.get("http://localhost:5000/api/categories")
+      .then(res => {
+        const catList = ["All", ...res.data.map(c => c.categoryName)];
+        setCategories(catList);
+      })
+      .catch(() => console.error("Failed to load categories"));
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -62,11 +66,10 @@ export default function POSPage({ user }) {
   const total = +(subtotal + tax).toFixed(2);
 
   // ---- NEW: Save sale to "sales" collection ----
-    const completeSale = async () => {
+  const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
 
     try {
-      // Build sale data that matches your backend schema
       const saleData = {
         lines: lines.map(i => ({
           name: i.name,
@@ -83,13 +86,12 @@ export default function POSPage({ user }) {
       await axios.post("http://localhost:5000/api/sales", saleData);
 
       alert("✅ Payment complete! Sale recorded.");
-      setCart({}); // Clear cart
+      setCart({});
     } catch (err) {
       console.error("❌ Failed to save sale:", err);
       alert("❌ Failed to save sale");
     }
   };
-
 
   // --- Barcode quick add (optional) ---
   const [barcode, setBarcode] = useState("");
