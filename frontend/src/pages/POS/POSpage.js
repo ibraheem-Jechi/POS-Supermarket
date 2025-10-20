@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import api from "../../api/client";
+import axios from "axios";
 import "./pos.css";
 
-export default function POSPage() {
+export default function POSPage({ user }) {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState({});
   const [products, setProducts] = useState([]);
@@ -20,13 +21,19 @@ export default function POSPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const categories = useMemo(() => ["All", ...Array.from(new Set(products.map(p => p.productCategory)))], [products]);
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(products.map(p => p.productCategory)))],
+    [products]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter(p => {
-      const matchText = !q || p.productName.toLowerCase().includes(q) || (p.productCategory||"").toLowerCase().includes(q);
-      const matchCat  = category === "All" || p.productCategory === category;
+      const matchText =
+        !q ||
+        p.productName.toLowerCase().includes(q) ||
+        (p.productCategory || "").toLowerCase().includes(q);
+      const matchCat = category === "All" || p.productCategory === category;
       return matchText && matchCat;
     });
   }, [products, query, category]);
@@ -54,16 +61,35 @@ export default function POSPage() {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
-  const checkout = async () => {
+  // ---- NEW: Save sale to "sales" collection ----
+    const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
+
     try {
-      await api.post("/carts", { lines, subtotal, tax, total });
-      alert("✅ Payment complete!");
-      setCart({});
-    } catch {
-      alert("❌ Failed to save cart");
+      // Build sale data that matches your backend schema
+      const saleData = {
+        lines: lines.map(i => ({
+          name: i.name,
+          price: i.price,
+          qty: i.qty
+        })),
+        subtotal,
+        tax,
+        total
+      };
+
+      console.log("🟢 Sending sale data:", saleData);
+
+      await axios.post("http://localhost:5000/api/sales", saleData);
+
+      alert("✅ Payment complete! Sale recorded.");
+      setCart({}); // Clear cart
+    } catch (err) {
+      console.error("❌ Failed to save sale:", err);
+      alert("❌ Failed to save sale");
     }
   };
+
 
   // --- Barcode quick add (optional) ---
   const [barcode, setBarcode] = useState("");
@@ -154,7 +180,8 @@ export default function POSPage() {
           <div className="total"><span>Total</span><span>${total.toFixed(2)}</span></div>
         </div>
 
-        <button className="checkout" onClick={checkout}>Checkout</button>
+        {/* Updated checkout button */}
+        <button className="checkout" onClick={completeSale}>Complete Sale</button>
       </aside>
     </div>
   );

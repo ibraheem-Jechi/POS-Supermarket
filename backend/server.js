@@ -6,31 +6,37 @@ const morgan = require('morgan');
 
 const app = express();
 
-// middleware
-app.use(cors());
+// --------------------------
+// Middleware
+// --------------------------
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// basic health-check route
+// --------------------------
+// Health-check route
+// --------------------------
 app.get('/', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// TODO: mount routes here
-
-const productRoutes = require("./routes/productRoutes");
-app.use("/api/products", productRoutes);
-
-
+// --------------------------
+// API Routes
+// --------------------------
+const productRoutes = require('./routes/productRoutes');
+app.use('/api/products', productRoutes);
 
 const cartsRoute = require("./routes/carts");
 app.use("/api/carts", cartsRoute);
 
-const PORT = process.env.PORT || 5000;
-const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
-
 const saleRoutes = require('./routes/saleRoutes');
-app.use('/api/sales', saleRoutes);
+app.use('/api/sales', saleRoutes); // frontend fetches all carts
 
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
@@ -39,6 +45,11 @@ const categoryRoutes = require("./routes/categoryRoutes");
 app.use("/api/categories", categoryRoutes);
 
 
+// --------------------------
+// Server & Database Setup
+// --------------------------
+const PORT = process.env.PORT || 5000;
+const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
 
 mongoose.connect(MONGO)
   .then(() => {
@@ -49,4 +60,3 @@ mongoose.connect(MONGO)
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
-

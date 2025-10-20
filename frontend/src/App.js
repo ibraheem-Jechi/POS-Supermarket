@@ -4,6 +4,7 @@ import POSPage from './pages/POS/POSpage';
 import AdminDashboard from './pages/AdminDashboard';
 import CategoryPage from './pages/CategoryPage';
 import ProductsPage from "./pages/ProductsPage";   // ✅ خليها هي الصفحة الأساسية
+import SalesHistory from './pages/SalesHistory';
 
 function App() {
   const [user, setUser] = useState(null); 
@@ -54,11 +55,23 @@ function App() {
   // 🟢 Dashboard
   const DashboardPage = () => (
     <div>
-      <h2>Dashboard</h2>
       {user.role === 'admin' ? (
         <AdminDashboard user={user} />
       ) : (
-        <p>Welcome, {user.username}! You are logged in as <b>{user.role}</b>.</p>
+        <p>
+          Welcome, {user.username}! You are logged in as <b>{user.role}</b>.
+        </p>
+      )}
+    </div>
+  );
+
+  // Products page
+  const ProductsPage = () => (
+    <div>
+      {user.role === 'admin' ? (
+        <p>Admin can manage or edit products here (coming soon).</p>
+      ) : (
+        <p>Only admins can edit products.</p>
       )}
     </div>
   );
@@ -112,6 +125,7 @@ function App() {
           {page === 'products' && <ProductsPage />}   {/* ✅ هون صار يستعمل الصفحة الحقيقية */}
           {page === 'dashboard' && <DashboardPage />}
           {page === 'category' && <CategoryPage />}
+          {page === 'salesHistory' && <SalesHistory user={user} />}
         </div>
       </div>
     </div>
