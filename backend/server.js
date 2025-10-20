@@ -17,8 +17,10 @@ app.get('/', (req, res) => {
 });
 
 // TODO: mount routes here
-const productRoutes = require('./routes/productRoutes');
-app.use('/api/products', productRoutes);
+
+const productRoutes = require("./routes/productRoutes");
+app.use("/api/products", productRoutes);
+
 
 
 const cartsRoute = require("./routes/carts");
@@ -32,6 +34,10 @@ app.use('/api/sales', saleRoutes);
 
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
+
+const categoryRoutes = require("./routes/categoryRoutes");
+app.use("/api/categories", categoryRoutes);
+
 
 
 mongoose.connect(MONGO)
