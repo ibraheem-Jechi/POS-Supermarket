@@ -62,7 +62,8 @@ const ProductsPage = () => {
       productName: p.productName,
       productPrice: p.productPrice,
       barcode: p.barcode,
-      productCategory: p.productCategory?._id || ""
+      // productCategory in DB may be a plain string (category name) or an object; prefer the name
+      productCategory: typeof p.productCategory === 'string' ? p.productCategory : (p.productCategory?.name || "")
     });
     setEditingId(p._id);
   };
@@ -125,8 +126,8 @@ const ProductsPage = () => {
         >
           <option value="">-- Select Category --</option>
           {categories.map((c) => (
-            <option key={c._id} value={c._id}>
-              {c.categoryName}
+            <option key={c._id} value={c.name}>
+              {c.name}
             </option>
           ))}
         </select>
@@ -151,7 +152,7 @@ const ProductsPage = () => {
                 <td>{p.productName}</td>
                 <td>{p.barcode}</td>
                 <td>${p.productPrice}</td>
-                <td>{typeof p.productCategory === 'string' ? p.productCategory : (p.productCategory?.categoryName || "N/A")}</td>
+                <td>{typeof p.productCategory === 'string' ? p.productCategory : (p.productCategory?.name || p.productCategory?.categoryName || "N/A")}</td>
                 <td>
                   <button onClick={() => handleEdit(p)}>Edit</button>
                   <button onClick={() => handleDelete(p._id)}>Delete</button>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "./CategoryPage.css"; // 🟢 نستورد ملف CSS
+import "./CategoryPage.css";
 
 const CategoryPage = () => {
   const [categories, setCategories] = useState([]);
@@ -16,39 +16,64 @@ const CategoryPage = () => {
   }, []);
 
   const fetchCategories = async () => {
-    const res = await axios.get("http://localhost:5000/api/categories");
-    setCategories(res.data);
+    try {
+      const res = await axios.get("http://localhost:5000/api/categories");
+      setCategories(res.data);
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
   };
 
   const addCategory = async (e) => {
     e.preventDefault();
-    await axios.post("http://localhost:5000/api/categories", {
-      name: newCategory,
-      description: newDescription,
-    });
-    setNewCategory("");
-    setNewDescription("");
-    fetchCategories();
+    try {
+      if (!newCategory.trim()) return alert("Category name is required");
+
+      await axios.post("http://localhost:5000/api/categories", {
+        categoryName: newCategory,
+        description: newDescription,
+      });
+
+      setNewCategory("");
+      setNewDescription("");
+      fetchCategories();
+    } catch (err) {
+      console.error("Error adding category:", err);
+      alert(err.response?.data?.message || err.message || "Failed to add category");
+    }
   };
 
   const deleteCategory = async (id) => {
-    await axios.delete(`http://localhost:5000/api/categories/${id}`);
-    fetchCategories();
+    try {
+      await axios.delete(`http://localhost:5000/api/categories/${id}`);
+      fetchCategories();
+    } catch (err) {
+      console.error("Error deleting category:", err);
+      alert("Failed to delete category");
+    }
   };
 
   const startEdit = (cat) => {
     setEditId(cat._id);
-    setEditName(cat.name);
+    setEditName(cat.categoryName);
     setEditDescription(cat.description || "");
   };
 
   const saveEdit = async () => {
-    await axios.put(`http://localhost:5000/api/categories/${editId}`, {
-      name: editName,
-      description: editDescription,
-    });
-    setEditId(null);
-    fetchCategories();
+    try {
+      if (!editName.trim()) return alert("Category name cannot be empty");
+
+      await axios.put(`http://localhost:5000/api/categories/${editId}`, {
+        categoryName: editName,
+        description: editDescription,
+      });
+
+      setEditId(null);
+      fetchCategories();
+    } catch (err) {
+      console.error("Error updating category:", err);
+      alert(err.response?.data?.message || err.message || "Failed to update category");
+    }
   };
 
   return (
@@ -93,7 +118,7 @@ const CategoryPage = () => {
               </div>
             ) : (
               <div>
-                <strong>{cat.name}</strong> — {cat.description || "No description"}
+                <strong>{cat.categoryName}</strong> — {cat.description || "No description"}
                 <div className="category-buttons">
                   <button onClick={() => startEdit(cat)}>Edit</button>
                   <button onClick={() => deleteCategory(cat._id)}>Delete</button>

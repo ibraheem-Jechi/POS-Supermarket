@@ -54,6 +54,28 @@ app.use("/api/categories", categoryRoutes);
 mongoose.connect(MONGO)
   .then(() => {
     console.log('✅ MongoDB connected');
+
+    // Automatic one-time patch: populate `categoryName` from `name` for existing categories
+    try {
+      const Category = require('./models/categoryModel');
+      Category.updateMany(
+        { $or: [{ categoryName: { $exists: false } }, { categoryName: null }] },
+        [{ $set: { categoryName: '$name' } }]
+      )
+        .then((result) => {
+          if (result.modifiedCount && result.modifiedCount > 0) {
+            console.log(`✅ Patched ${result.modifiedCount} category documents to set categoryName`);
+          } else {
+            console.log('✅ No category documents needed patching');
+          }
+        })
+        .catch((err) => {
+          console.error('Error patching categories on startup:', err.message || err);
+        });
+    } catch (e) {
+      console.error('Could not run startup patch for categories:', e.message || e);
+    }
+
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
   .catch(err => {
