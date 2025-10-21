@@ -1,0 +1,61 @@
+.sidebar {
+  width: 220px;
+  background: linear-gradient(180deg, #74ebd5, #ACB6E5);
+  min-height: 100vh;
+  padding: 20px;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  font-family: 'Segoe UI', sans-serif;
+  color: white;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  padding: 20px 0;
+}
+
+.sidebar h2, .sidebar p {
+  margin-bottom: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: white;
+  transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar button:hover {
+  background: rgba(255,255,255,0.35);
+  color: #000;
+}
+
+.sidebar .logout-btn {
+  background: #e74c3c !important;
+  margin-top: 30px;
+  color: white;
+}
+
+.hamburger {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 100;
+  color: #2c3e50;
+}

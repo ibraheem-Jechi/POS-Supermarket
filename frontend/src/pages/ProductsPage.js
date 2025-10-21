@@ -121,7 +121,6 @@ const ProductsPage = () => {
     <div className="products-container">
       <h2>Products Management</h2>
 
-      {/* Search */}
       <input
         type="text"
         placeholder="Search by name or barcode..."
@@ -130,7 +129,6 @@ const ProductsPage = () => {
         className="search-bar"
       />
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="product-form">
         <input
           type="text"

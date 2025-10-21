@@ -11,6 +11,7 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "bootstrap": "^5.3.8",
     "react-cookie": "^8.0.1",
     "react-icons": "^5.5.0"
   }

@@ -6,17 +6,17 @@ const User = require('../models/userModel');
 // Create new user (admin only)
 // --------------------------
 router.post('/create', async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password, role, salary } = req.body;
   try {
     const userExists = await User.findOne({ username });
     if (userExists) return res.status(400).json({ error: 'User already exists' });
 
-    const user = new User({ username, password, role });
+    const user = new User({ username, password, role, salary });
     await user.save();
 
     res.status(201).json({
       message: 'User created',
-      user: { id: user._id, username: user.username, role: user.role }
+      user: { id: user._id, username: user.username, role: user.role, salary: user.salary }
     });
   } catch (err) {
     console.error(err);
@@ -45,12 +45,21 @@ router.post('/login', async (req, res) => {
 });
 
 // --------------------------
-// Get all users
+// Get all users + statistics
 // --------------------------
 router.get('/all', async (req, res) => {
   try {
     const users = await User.find().select('-password');
-    res.json(users);
+
+    // 🧮 Calculate statistics
+    const totalUsers = users.length;
+    const totalSalary = users.reduce((sum, u) => sum + (u.salary || 0), 0);
+    const byRole = users.reduce((acc, u) => {
+      acc[u.role] = (acc[u.role] || 0) + 1;
+      return acc;
+    }, {});
+
+    res.json({ users, totalUsers, totalSalary, byRole });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error fetching users' });
@@ -61,7 +70,7 @@ router.get('/all', async (req, res) => {
 // Update user (admin only)
 // --------------------------
 router.put('/:id', async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password, role, salary } = req.body;
 
   try {
     const user = await User.findById(req.params.id);
@@ -69,13 +78,13 @@ router.put('/:id', async (req, res) => {
 
     user.username = username || user.username;
     user.role = role || user.role;
+    user.salary = salary !== undefined ? salary : user.salary;
 
-    // only update password if provided
     if (password) user.password = password;
 
     await user.save();
 
-    res.json({ message: 'User updated', user: { id: user._id, username: user.username, role: user.role } });
+    res.json({ message: 'User updated', user: { id: user._id, username: user.username, role: user.role, salary: user.salary } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error updating user' });

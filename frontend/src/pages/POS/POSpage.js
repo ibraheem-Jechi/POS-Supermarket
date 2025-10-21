@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import api from "../../api/client";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import "./pos.css";
-
+import api from "../../api/client";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function POSPage({ user }) {
   const [query, setQuery] = useState("");
@@ -10,30 +9,28 @@ export default function POSPage({ user }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState(null); // 🟢 لتخزين رقم الفاتورة
-
   const [category, setCategory] = useState("All");
-  const [categories, setCategories] = useState(["All"]);
+  const [barcode, setBarcode] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState(null);
 
+  // Fetch products
   useEffect(() => {
     setLoading(true);
-    api.get("/products")
-      .then(res => setProducts(res.data))
+    api
+      .get("/products")
+      .then((res) => setProducts(res.data))
       .catch(() => setErr("Failed to load products"))
       .finally(() => setLoading(false));
-
-    // NEW: Fetch categories from backend
-    axios.get("http://localhost:5000/api/categories")
-      .then(res => {
-        const catList = ["All", ...res.data.map(c => c.categoryName)];
-        setCategories(catList);
-      })
-      .catch(() => console.error("Failed to load categories"));
   }, []);
+
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(products.map((p) => p.productCategory)))],
+    [products]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return products.filter(p => {
+    return products.filter((p) => {
       const matchText =
         !q ||
         p.productName.toLowerCase().includes(q) ||
@@ -43,22 +40,45 @@ export default function POSPage({ user }) {
     });
   }, [products, query, category]);
 
+  // Cart functions
   const addToCart = (p) => {
-    setCart(prev => {
+    setCart((prev) => {
       const existing = prev[p._id];
       const qty = existing ? existing.qty + 1 : 1;
-      return { ...prev, [p._id]: { productId: p._id, name: p.productName, price: p.productPrice, qty } };
+      return {
+        ...prev,
+        [p._id]: {
+          productId: p._id,
+          name: p.productName,
+          price: p.productPrice,
+          qty,
+        },
+      };
     });
   };
 
-  const decQty = (id) => setCart(prev => {
-    const item = prev[id]; if (!item) return prev;
-    const next = { ...prev };
-    if (item.qty <= 1) delete next[id]; else next[id] = { ...item, qty: item.qty - 1 };
-    return next;
-  });
-  const incQty = (id) => setCart(prev => ({ ...prev, [id]: { ...prev[id], qty: prev[id].qty + 1 }}));
-  const removeItem = (id) => setCart(prev => { const n = { ...prev }; delete n[id]; return n; });
+  const decQty = (id) =>
+    setCart((prev) => {
+      const item = prev[id];
+      if (!item) return prev;
+      const next = { ...prev };
+      if (item.qty <= 1) delete next[id];
+      else next[id] = { ...item, qty: item.qty - 1 };
+      return next;
+    });
+
+  const incQty = (id) =>
+    setCart((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], qty: prev[id].qty + 1 },
+    }));
+
+  const removeItem = (id) =>
+    setCart((prev) => {
+      const n = { ...prev };
+      delete n[id];
+      return n;
+    });
 
   const lines = Object.values(cart);
   const subtotal = lines.reduce((s, i) => s + i.price * i.qty, 0);
@@ -67,154 +87,198 @@ export default function POSPage({ user }) {
   const total = +(subtotal + tax).toFixed(2);
 
   // 🟢 Checkout
-const completeSale = async () => {
-  if (!lines.length) return alert("Cart is empty");
+  const completeSale = async () => {
+    if (!lines.length) return alert("Cart is empty");
 
-  try {
-    const cartData = {
-      lines,
-      subtotal,
-      tax,
-      total,
-      cashier: user?.username || "unknown",
-    };
+    try {
+      const cartData = {
+        lines,
+        subtotal,
+        tax,
+        total,
+        cashier: user?.username || "unknown",
+      };
 
-    // 1) Save cart/invoice
-    const res = await axios.post("http://localhost:5000/api/carts", cartData);
+      // 1) Save cart/invoice
+      const res = await axios.post("http://localhost:5000/api/carts", cartData);
 
-   // 2) Update stock quantities
-const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-  items: lines.map(i => ({
-    productId: i.productId,
-    qty: i.qty,
-  }))
-});
+      // 2) Update stock quantities
+      const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
+        items: lines.map((i) => ({
+          productId: i.productId,
+          qty: i.qty,
+        })),
+      });
 
-// ✅ Show errors (if stock not enough → cancel sale)
-if (stockRes.data.errors && stockRes.data.errors.length > 0) {
-  alert(stockRes.data.errors.join("\n"));
-  return; // ⛔ Stop here → don’t complete sale
-}
+      // ✅ Show errors (if stock not enough → cancel sale)
+      if (stockRes.data.errors && stockRes.data.errors.length > 0) {
+        alert(stockRes.data.errors.join("\n"));
+        return; // ⛔ Stop here → don’t complete sale
+      }
 
-// ✅ Show warnings (low stock or out of stock)
-if (stockRes.data.warnings && stockRes.data.warnings.length > 0) {
-  alert(stockRes.data.warnings.join("\n"));
-}
+      // ✅ Show warnings (low stock or out of stock)
+      if (stockRes.data.warnings && stockRes.data.warnings.length > 0) {
+        alert(stockRes.data.warnings.join("\n"));
+      }
 
-    // 3) Show success with invoice number
+      // 3) Show success with invoice number
+      if (res.data && res.data.invoiceNumber) {
+        setInvoiceNumber(res.data.invoiceNumber);
+        alert(`✅ Payment complete! Invoice #${res.data.invoiceNumber}`);
+      } else {
+        alert("✅ Payment complete! (no invoice number returned)");
+      }
 
-    if (res.data && res.data.invoiceNumber) {
-      setInvoiceNumber(res.data.invoiceNumber);
-      alert(`✅ Payment complete! Invoice #${res.data.invoiceNumber}`);
-    } else {
-      alert("✅ Payment complete! (no invoice number returned)");
+      setCart({});
+    } catch (err) {
+      console.error("❌ Failed to save cart:", err.response?.data || err.message);
+      alert("❌ Failed to save cart");
     }
-
-    setCart({});
-  } catch (err) {
-    console.error("❌ Failed to save cart:", err.response?.data || err.message);
-    alert("❌ Failed to save cart");
-  }
-};
-
+  };
 
   // --- Barcode quick add ---
-  const [barcode, setBarcode] = useState("");
   const onBarcodeEnter = (e) => {
     if (e.key !== "Enter") return;
-    const p = products.find(p => (p.barcode || "") === barcode.trim());
+    const p = products.find((p) => (p.barcode || "") === barcode.trim());
     if (p) addToCart(p);
     setBarcode("");
   };
 
   return (
-    <div className="pos">
-      <section className="pos__products">
-        <div className="pos__search">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products or categories…"
-          />
-        </div>
+    <div className="container-fluid bg-light min-vh-100 p-4">
+      <div className="row">
+        {/* Products Section */}
+        <div className="col-md-8 mb-4">
+          <div className="card shadow-sm p-3 h-100">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search products or categories…"
+              className="form-control mb-3"
+            />
 
-        {/* Category chips */}
-        <div className="chip-row">
-          {categories.map(c => (
-            <button
-              key={c}
-              className={`chip ${category === c ? "chip--active" : ""}`}
-              onClick={() => setCategory(c)}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+            {/* Category Chips */}
+            <div className="mb-3 d-flex flex-wrap gap-2">
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  className={`btn btn-sm ${
+                    category === c ? "btn-primary text-white" : "btn-outline-secondary"
+                  }`}
+                  onClick={() => setCategory(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
 
-        {/* Barcode input */}
-        <div className="barcode-row">
-          <input
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            onKeyDown={onBarcodeEnter}
-            placeholder="Scan/enter barcode and press Enter"
-          />
-        </div>
+            {/* Barcode Input */}
+            <div className="mb-3">
+              <input
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                onKeyDown={onBarcodeEnter}
+                placeholder="Scan/enter barcode and press Enter"
+                className="form-control"
+              />
+            </div>
 
-        {loading ? <p>Loading…</p> : err ? <p style={{color:"crimson"}}>{err}</p> : (
-          <div className="pos__grid">
-            {filtered.map((p) => (
-              <button key={p._id} className="pos__card" onClick={() => addToCart(p)}>
-                <div className="pos__card-name">{p.productName}</div>
-                <div className="pos__card-meta">
-                  <span className="pill">{p.productCategory}</span>
-                  <span className="price">${p.productPrice.toFixed(2)}</span>
-                </div>
-              </button>
-            ))}
-            {!filtered.length && <div className="muted">No products</div>}
+            {/* Products Grid */}
+            {loading ? (
+              <p>Loading…</p>
+            ) : err ? (
+              <p className="text-danger">{err}</p>
+            ) : (
+              <div className="row row-cols-2 row-cols-md-3 g-3">
+                {filtered.map((p) => (
+                  <div key={p._id} className="col">
+                    <button
+                      onClick={() => addToCart(p)}
+                      className="card p-2 w-100 h-100 border-0 shadow-sm hover-shadow"
+                    >
+                      <div className="fw-semibold mb-2">{p.productName}</div>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="badge bg-secondary">{p.productCategory}</span>
+                        <span className="fw-bold">${p.productPrice.toFixed(2)}</span>
+                      </div>
+                    </button>
+                  </div>
+                ))}
+                {!filtered.length && <div className="text-muted mt-2">No products</div>}
+              </div>
+            )}
           </div>
-        )}
-      </section>
-
-      <aside className="pos__cart">
-        <h3>Cart</h3>
-        {invoiceNumber && (
-  <div className="invoice-info">
-    <strong>Invoice:</strong> {invoiceNumber+1}
-  </div>
-)}
-
-        {!lines.length ? (
-          <div className="muted">No items yet</div>
-        ) : (
-          <ul className="cart-list">
-            {lines.map((i) => (
-              <li key={i.productId} className="cart-row">
-                <div className="cart-info">
-                  <div className="cart-name">{i.name}</div>
-                  <div className="muted">${i.price.toFixed(2)} each</div>
-                </div>
-                <div className="cart-controls">
-                  <button onClick={() => decQty(i.productId)}>-</button>
-                  <span>{i.qty}</span>
-                  <button onClick={() => incQty(i.productId)}>+</button>
-                  <span className="row-total">${(i.price * i.qty).toFixed(2)}</span>
-                  <button className="link danger" onClick={() => removeItem(i.productId)}>remove</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="pos__totals">
-          <div><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-          <div><span>Tax (11%)</span><span>${tax.toFixed(2)}</span></div>
-          <div className="total"><span>Total</span><span>${total.toFixed(2)}</span></div>
         </div>
 
-        <button className="checkout" onClick={completeSale}>Checkout</button>
-      </aside>
+        {/* Cart Section */}
+        <div className="col-md-4 mb-4">
+          <div className="card shadow-sm p-3 sticky-top">
+            <h5 className="mb-3">Cart</h5>
+            {lines.length === 0 ? (
+              <div className="text-muted">No items yet</div>
+            ) : (
+              <ul className="list-group mb-3">
+                {lines.map((i) => (
+                  <li
+                    key={i.productId}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <div className="fw-semibold">{i.name}</div>
+                      <div className="text-muted">${i.price.toFixed(2)} each</div>
+                    </div>
+                    <div className="d-flex align-items-center gap-1">
+                      <button
+                        onClick={() => decQty(i.productId)}
+                        className="btn btn-outline-secondary btn-sm"
+                      >
+                        -
+                      </button>
+                      <span>{i.qty}</span>
+                      <button
+                        onClick={() => incQty(i.productId)}
+                        className="btn btn-outline-secondary btn-sm"
+                      >
+                        +
+                      </button>
+                      <span className="fw-bold ms-2">
+                        ${(i.price * i.qty).toFixed(2)}
+                      </span>
+                      <button
+                        onClick={() => removeItem(i.productId)}
+                        className="btn btn-link text-danger p-0 ms-2"
+                      >
+                        remove
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Totals */}
+            <div className="mb-3">
+              <div className="d-flex justify-content-between">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span>Tax (11%)</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+              <div className="d-flex justify-content-between fw-bold fs-5">
+                <span>Total</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Checkout */}
+            <button onClick={completeSale} className="btn btn-primary w-100">
+              Complete Sale
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
