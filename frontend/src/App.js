@@ -1,62 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import LoginPage from './pages/LoginPage';
-import POSPage from './pages/POS/POSpage';
-import AdminDashboard from './pages/AdminDashboard';
-import SalesHistory from './pages/SalesHistory';
-import CategoryPage from './pages/CategoryPage';
-import ProductsPage from "./pages/ProductsPage";   // ✅ خليها هي الصفحة الأساسية
+import React, { useState, useEffect } from "react";
+import Sidebar from "./components/Sidebar";
+import LoginPage from "./pages/LoginPage";
+import POSPage from "./pages/POS/POSpage";
+import AdminDashboard from "./pages/AdminDashboard";
+import SalesHistory from "./pages/SalesHistory";
+import CategoryPage from "./pages/CategoryPage";
+import ProductsPage from "./pages/ProductsPage";
+import { FaBars } from "react-icons/fa";
 
 function App() {
-  const [user, setUser] = useState(null); 
-  const [page, setPage] = useState('');
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
 
-  // 🟢 استرجاع user + page من localStorage عند أول تحميل
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedPage = localStorage.getItem("page");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    if (savedPage) {
-  // normalize stored page value to lowercase to avoid mismatches
-  setPage(typeof savedPage === 'string' ? savedPage.toLowerCase() : savedPage);
-    }
+    if (savedUser) setUser(JSON.parse(savedUser));
+    if (savedPage) setPage(savedPage.toLowerCase());
   }, []);
 
-  // 🟢 كل ما يتغير user نخزنه
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("user");
-    }
+    if (user) localStorage.setItem("user", JSON.stringify(user));
+    else localStorage.removeItem("user");
   }, [user]);
 
-  // 🟢 كل ما تتغير الصفحة نخزنها
   useEffect(() => {
-    if (page) {
-      localStorage.setItem("page", page);
-    }
+    if (page) localStorage.setItem("page", page);
   }, [page]);
 
-  // 🟢 لو مش عامل login
   if (!user) {
     return (
-      <LoginPage onLogin={(u) => {
-        setUser(u);
-        if (u.role === 'admin') {
-          setPage('dashboard');
-        } else {
-          setPage('pos');
-        }
-      }} />
+      <LoginPage
+        onLogin={(u) => {
+          setUser(u);
+          setPage(u.role === "admin" ? "dashboard" : "pos");
+        }}
+      />
     );
   }
 
-  // 🟢 Dashboard
   const DashboardPage = () => (
     <div>
-      {user.role === 'admin' ? (
+      {user.role === "admin" ? (
         <AdminDashboard user={user} />
       ) : (
         <p>
@@ -66,62 +52,55 @@ function App() {
     </div>
   );
 
-  // Products page
-  // use imported `ProductsPage` component from ./pages/ProductsPage
-
   return (
-    <div>
-      <header style={{ background: '#2c3e50', color: 'white', padding: '10px', textAlign: 'center' }}>
-        Supermarket POS
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%)",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+        position: "relative",
+      }}
+    >
+      {/* Hamburger Menu */}
+      <FaBars className="hamburger" onClick={() => setCollapsed(!collapsed)} />
+
+      <header
+        style={{
+          background: "rgba(255, 255, 255, 0.3)",
+          color: "#2c3e50",
+          padding: "15px",
+          textAlign: "center",
+          fontWeight: "600",
+          fontSize: "20px",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        🛒 Supermarket POS
       </header>
 
-      <div style={{ display: 'flex', minHeight: '90vh' }}>
-        {/* Sidebar (single consolidated set of buttons) */}
-        <div style={{ width: '200px', background: '#34495e', color: 'white', padding: '20px' }}>
-          <p>
-            Logged in as: <b>{user.username}</b> ({user.role})
-          </p>
+      <div style={{ display: "flex", flex: 1 }}>
+        <Sidebar user={user} setPage={setPage} setUser={setUser} collapsed={collapsed} />
 
-          <button onClick={() => setPage('pos')} style={{ display: 'block', marginBottom: '10px' }}>POS</button>
-          <button onClick={() => setPage('products')} style={{ display: 'block', marginBottom: '10px' }}>Products</button>
-
-          {user.role === 'admin' && (
-            <>
-              <button onClick={() => setPage('dashboard')} style={{ display: 'block', marginBottom: '10px' }}>Dashboard</button>
-              <button onClick={() => setPage('category')} style={{ display: 'block', marginBottom: '10px' }}>Categories</button>
-            </>
-          )}
-
-          <button onClick={() => setPage('salesHistory')} style={{ display: 'block', marginBottom: '10px' }}>Sales History</button>
-
-          <button
-            onClick={() => {
-              setUser(null);
-              setPage('');
-              localStorage.clear();
-            }}
-            style={{
-              display: 'block',
-              marginTop: '20px',
-              background: '#c0392b',
-              color: 'white',
-              padding: '8px',
-              border: 'none',
-              width: '100%',
-              cursor: 'pointer',
-            }}
-          >
-            Logout
-          </button>
-        </div>
-
-        {/* Main content */}
-        <div style={{ flex: 1, padding: '20px', background: '#ecf0f1' }}>
-          {page === 'pos' && <POSPage user={user} />}
-          {page === 'products' && <ProductsPage />}   {/* ✅ هون صار يستعمل الصفحة الحقيقية */}
-          {page === 'dashboard' && <DashboardPage />}
-          {page === 'salesHistory' && <SalesHistory user={user} />}
-          {page === 'category' && <CategoryPage />}
+        <div
+          style={{
+            flex: 1,
+            padding: "20px",
+            background: "rgba(255, 255, 255, 0.3)",
+            borderRadius: "12px",
+            margin: "20px",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
+            backdropFilter: "blur(10px)",
+            transition: "margin-left 0.3s ease",
+            marginLeft: collapsed ? "0px" : "0px",
+          }}
+        >
+          {page === "pos" && <POSPage user={user} />}
+          {page === "products" && <ProductsPage />}
+          {page === "dashboard" && <DashboardPage />}
+          {page === "salesHistory" && <SalesHistory user={user} />}
+          {page === "category" && <CategoryPage />}
         </div>
       </div>
     </div>

@@ -14,7 +14,6 @@ const ProductsPage = () => {
   });
   const [editingId, setEditingId] = useState(null);
 
-  // 🟢 Fetch products
   const fetchProducts = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/products");
@@ -24,7 +23,6 @@ const ProductsPage = () => {
     }
   };
 
-  // 🟢 Fetch categories
   const fetchCategories = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/categories");
@@ -39,7 +37,6 @@ const ProductsPage = () => {
     fetchCategories();
   }, []);
 
-  // 🟢 Add / Update product
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -56,19 +53,16 @@ const ProductsPage = () => {
     }
   };
 
-  // 🟢 Edit product
   const handleEdit = (p) => {
     setNewProduct({
       productName: p.productName,
       productPrice: p.productPrice,
       barcode: p.barcode,
-      // productCategory in DB may be a plain string (category name) or an object; prefer the name
-      productCategory: typeof p.productCategory === 'string' ? p.productCategory : (p.productCategory?.name || "")
+      productCategory: typeof p.productCategory === "string" ? p.productCategory : (p.productCategory?.name || "")
     });
     setEditingId(p._id);
   };
 
-  // 🟢 Delete product
   const handleDelete = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/products/${id}`);
@@ -78,7 +72,6 @@ const ProductsPage = () => {
     }
   };
 
-  // 🟢 Filter products
   const filteredProducts = products.filter((p) =>
     p.productName.toLowerCase().includes(search.toLowerCase())
   );
@@ -87,7 +80,6 @@ const ProductsPage = () => {
     <div className="products-container">
       <h2>Products Management</h2>
 
-      {/* Search */}
       <input
         type="text"
         placeholder="Search product..."
@@ -96,7 +88,6 @@ const ProductsPage = () => {
         className="search-bar"
       />
 
-      {/* Form */}
       <form onSubmit={handleSubmit} className="product-form">
         <input
           type="text"
@@ -134,7 +125,6 @@ const ProductsPage = () => {
         <button type="submit">{editingId ? "Update" : "Add"} Product</button>
       </form>
 
-      {/* Products Table */}
       <table className="products-table">
         <thead>
           <tr>
@@ -152,7 +142,7 @@ const ProductsPage = () => {
                 <td>{p.productName}</td>
                 <td>{p.barcode}</td>
                 <td>${p.productPrice}</td>
-                <td>{typeof p.productCategory === 'string' ? p.productCategory : (p.productCategory?.name || p.productCategory?.categoryName || "N/A")}</td>
+                <td>{typeof p.productCategory === "string" ? p.productCategory : (p.productCategory?.name || "N/A")}</td>
                 <td>
                   <button onClick={() => handleEdit(p)}>Edit</button>
                   <button onClick={() => handleDelete(p._id)}>Delete</button>
