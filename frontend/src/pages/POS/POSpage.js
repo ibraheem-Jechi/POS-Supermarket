@@ -76,10 +76,32 @@ const completeSale = async () => {
       subtotal,
       tax,
       total,
-      cashier: user?.username || "unknown", // نخزن الكاشير
+      cashier: user?.username || "unknown",
     };
 
+    // 1) Save cart/invoice
     const res = await axios.post("http://localhost:5000/api/carts", cartData);
+
+   // 2) Update stock quantities
+const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
+  items: lines.map(i => ({
+    productId: i.productId,
+    qty: i.qty,
+  }))
+});
+
+// ✅ Show errors (if stock not enough → cancel sale)
+if (stockRes.data.errors && stockRes.data.errors.length > 0) {
+  alert(stockRes.data.errors.join("\n"));
+  return; // ⛔ Stop here → don’t complete sale
+}
+
+// ✅ Show warnings (low stock or out of stock)
+if (stockRes.data.warnings && stockRes.data.warnings.length > 0) {
+  alert(stockRes.data.warnings.join("\n"));
+}
+
+    // 3) Show success with invoice number
 
     if (res.data && res.data.invoiceNumber) {
       setInvoiceNumber(res.data.invoiceNumber);
@@ -88,7 +110,7 @@ const completeSale = async () => {
       alert("✅ Payment complete! (no invoice number returned)");
     }
 
-    setCart({}); // تفريغ السلة بعد الدفع
+    setCart({});
   } catch (err) {
     console.error("❌ Failed to save cart:", err.response?.data || err.message);
     alert("❌ Failed to save cart");

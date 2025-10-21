@@ -10,11 +10,13 @@ const ProductsPage = () => {
     productName: "",
     productPrice: "",
     barcode: "",
-    productCategory: ""
+    productCategory: "",
+    quantity: "",
+    minStockLevel: "10"
   });
   const [editingId, setEditingId] = useState(null);
 
-  // 🟢 Fetch products
+  // Fetch products
   const fetchProducts = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/products");
@@ -24,7 +26,7 @@ const ProductsPage = () => {
     }
   };
 
-  // 🟢 Fetch categories
+  // Fetch categories
   const fetchCategories = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/categories");
@@ -39,49 +41,81 @@ const ProductsPage = () => {
     fetchCategories();
   }, []);
 
-  // 🟢 Add / Update product
+  // Add / Update product
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const productData = {
+        ...newProduct,
+        productPrice: parseFloat(newProduct.productPrice),
+        quantity: parseInt(newProduct.quantity) || 0,
+        minStockLevel: parseInt(newProduct.minStockLevel) || 10
+      };
+
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/products/${editingId}`, newProduct);
+        await axios.put(`http://localhost:5000/api/products/${editingId}`, productData);
+        alert("✅ Product updated successfully");
       } else {
-        await axios.post("http://localhost:5000/api/products", newProduct);
+        await axios.post("http://localhost:5000/api/products", productData);
+        alert("✅ Product added successfully");
       }
-      setNewProduct({ productName: "", productPrice: "", barcode: "", productCategory: "" });
+      setNewProduct({ 
+        productName: "", 
+        productPrice: "", 
+        barcode: "", 
+        productCategory: "", 
+        quantity: "",
+        minStockLevel: "10"
+      });
       setEditingId(null);
       fetchProducts();
     } catch (err) {
       console.error("Error saving product:", err);
+      alert("❌ Error saving product");
     }
   };
 
-  // 🟢 Edit product
+  // Edit product
   const handleEdit = (p) => {
     setNewProduct({
       productName: p.productName,
       productPrice: p.productPrice,
-      barcode: p.barcode,
-      // productCategory in DB may be a plain string (category name) or an object; prefer the name
-      productCategory: typeof p.productCategory === 'string' ? p.productCategory : (p.productCategory?.name || "")
+      barcode: p.barcode || "",
+      quantity: p.quantity || 0,
+      minStockLevel: p.minStockLevel || 10,
+      productCategory: typeof p.productCategory === 'string' 
+        ? p.productCategory 
+        : (p.productCategory?.name || "")
     });
     setEditingId(p._id);
   };
 
-  // 🟢 Delete product
+  // Delete product
   const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    
     try {
       await axios.delete(`http://localhost:5000/api/products/${id}`);
+      alert("✅ Product deleted");
       fetchProducts();
     } catch (err) {
       console.error("Error deleting product:", err);
+      alert("❌ Error deleting product");
     }
   };
 
-  // 🟢 Filter products
+  // Filter products
   const filteredProducts = products.filter((p) =>
-    p.productName.toLowerCase().includes(search.toLowerCase())
+    p.productName.toLowerCase().includes(search.toLowerCase()) ||
+    (p.barcode || "").toLowerCase().includes(search.toLowerCase())
   );
+
+  // Get stock status
+  const getStockStatus = (product) => {
+    if (product.quantity === 0) return { status: "Out of Stock", color: "#e74c3c" };
+    if (product.quantity <= (product.minStockLevel || 10)) return { status: "Low Stock", color: "#f39c12" };
+    return { status: "In Stock", color: "#27ae60" };
+  };
 
   return (
     <div className="products-container">
@@ -90,7 +124,7 @@ const ProductsPage = () => {
       {/* Search */}
       <input
         type="text"
-        placeholder="Search product..."
+        placeholder="Search by name or barcode..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="search-bar"
@@ -100,14 +134,15 @@ const ProductsPage = () => {
       <form onSubmit={handleSubmit} className="product-form">
         <input
           type="text"
-          placeholder="Product Name"
+          placeholder="Product Name *"
           value={newProduct.productName}
           onChange={(e) => setNewProduct({ ...newProduct, productName: e.target.value })}
           required
         />
         <input
           type="number"
-          placeholder="Price"
+          step="0.01"
+          placeholder="Price *"
           value={newProduct.productPrice}
           onChange={(e) => setNewProduct({ ...newProduct, productPrice: e.target.value })}
           required
@@ -117,7 +152,19 @@ const ProductsPage = () => {
           placeholder="Barcode"
           value={newProduct.barcode}
           onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
+        />
+        <input
+          type="number"
+          placeholder="Quantity *"
+          value={newProduct.quantity}
+          onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
           required
+        />
+        <input
+          type="number"
+          placeholder="Min Stock (default: 10)"
+          value={newProduct.minStockLevel}
+          onChange={(e) => setNewProduct({ ...newProduct, minStockLevel: e.target.value })}
         />
         <select
           value={newProduct.productCategory}
@@ -131,43 +178,101 @@ const ProductsPage = () => {
             </option>
           ))}
         </select>
-        <button type="submit">{editingId ? "Update" : "Add"} Product</button>
+        <button type="submit" className="btn-submit">
+          {editingId ? "Update" : "Add"} Product
+        </button>
+        {editingId && (
+          <button 
+            type="button" 
+            className="btn-cancel"
+            onClick={() => {
+              setEditingId(null);
+              setNewProduct({ 
+                productName: "", 
+                productPrice: "", 
+                barcode: "", 
+                productCategory: "", 
+                quantity: "",
+                minStockLevel: "10"
+              });
+            }}
+          >
+            Cancel
+          </button>
+        )}
       </form>
 
+      {/* Stock Summary */}
+      <div className="stock-summary">
+        <div className="summary-item">
+          <span className="summary-label">Total Products:</span>
+          <span className="summary-value">{products.length}</span>
+        </div>
+        <div className="summary-item out-of-stock">
+          <span className="summary-label">Out of Stock:</span>
+          <span className="summary-value">{products.filter(p => p.quantity === 0).length}</span>
+        </div>
+        <div className="summary-item low-stock">
+          <span className="summary-label">Low Stock:</span>
+          <span className="summary-value">
+            {products.filter(p => p.quantity > 0 && p.quantity <= (p.minStockLevel || 10)).length}
+          </span>
+        </div>
+      </div>
+
       {/* Products Table */}
-      <table className="products-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Barcode</th>
-            <th>Price</th>
-            <th>Category</th>
-            <th style={{ width: "150px" }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((p) => (
-              <tr key={p._id}>
-                <td>{p.productName}</td>
-                <td>{p.barcode}</td>
-                <td>${p.productPrice}</td>
-                <td>{typeof p.productCategory === 'string' ? p.productCategory : (p.productCategory?.name || p.productCategory?.categoryName || "N/A")}</td>
-                <td>
-                  <button onClick={() => handleEdit(p)}>Edit</button>
-                  <button onClick={() => handleDelete(p._id)}>Delete</button>
+      <div className="table-wrapper">
+        <table className="products-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Barcode</th>
+              <th>Price</th>
+              <th>Quantity</th>
+              <th>Status</th>
+              <th>Category</th>
+              <th style={{ width: "150px" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((p) => {
+                const stockStatus = getStockStatus(p);
+                return (
+                  <tr key={p._id}>
+                    <td>{p.productName}</td>
+                    <td>{p.barcode || "N/A"}</td>
+                    <td className="price-cell">${p.productPrice.toFixed(2)}</td>
+                    <td className="quantity-cell" style={{ color: stockStatus.color, fontWeight: "bold" }}>
+                      {p.quantity || 0}
+                    </td>
+                    <td>
+                      <span className="status-badge" style={{ background: stockStatus.color }}>
+                        {stockStatus.status}
+                      </span>
+                    </td>
+                    <td>
+                      {typeof p.productCategory === 'string' 
+                        ? p.productCategory 
+                        : (p.productCategory?.name || "N/A")}
+                    </td>
+                    <td>
+                      <button onClick={() => handleEdit(p)} className="btn-edit">Edit</button>
+                      <button onClick={() => handleDelete(p._id)} className="btn-delete">Delete</button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "20px", color: "#7f8c8d" }}>
+                  No products found
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="5" style={{ textAlign: "center" }}>
-                No products found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
