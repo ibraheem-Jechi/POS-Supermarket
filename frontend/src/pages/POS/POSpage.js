@@ -11,7 +11,7 @@ export default function POSPage({ user }) {
   const [err, setErr] = useState("");
 
   // NEW: category filter state
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState("All"); 
   const [categories, setCategories] = useState(["All"]);
 
   useEffect(() => {
