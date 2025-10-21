@@ -5,11 +5,9 @@ import "./CategoryPage.css";
 const CategoryPage = () => {
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
-  const [newDescription, setNewDescription] = useState("");
 
-  const [editId, setEditId] = useState(null);
-  const [editName, setEditName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [categoryProducts, setCategoryProducts] = useState({}); // store products per category
 
   useEffect(() => {
     fetchCategories();
@@ -30,12 +28,10 @@ const CategoryPage = () => {
       if (!newCategory.trim()) return alert("Category name is required");
 
       await axios.post("http://localhost:5000/api/categories", {
-        categoryName: newCategory,
-        description: newDescription,
+        name: newCategory,
       });
 
       setNewCategory("");
-      setNewDescription("");
       fetchCategories();
     } catch (err) {
       console.error("Error adding category:", err);
@@ -53,27 +49,27 @@ const CategoryPage = () => {
     }
   };
 
-  const startEdit = (cat) => {
-    setEditId(cat._id);
-    setEditName(cat.categoryName);
-    setEditDescription(cat.description || "");
-  };
-
-  const saveEdit = async () => {
-    try {
-      if (!editName.trim()) return alert("Category name cannot be empty");
-
-      await axios.put(`http://localhost:5000/api/categories/${editId}`, {
-        categoryName: editName,
-        description: editDescription,
-      });
-
-      setEditId(null);
-      fetchCategories();
-    } catch (err) {
-      console.error("Error updating category:", err);
-      alert(err.response?.data?.message || err.message || "Failed to update category");
+  const toggleCategory = async (categoryName) => {
+    if (expandedCategory === categoryName) {
+      setExpandedCategory(null);
+      return;
     }
+
+    // Fetch products for this category ONLY if not already fetched
+    if (!categoryProducts[categoryName]) {
+      try {
+        const res = await axios.get(
+          `http://localhost:5000/api/products?category=${encodeURIComponent(categoryName)}`
+        );
+        setCategoryProducts((prev) => ({ ...prev, [categoryName]: res.data }));
+      } catch (err) {
+        console.error("Error fetching products for category:", err);
+        alert("Failed to fetch products");
+        return;
+      }
+    }
+
+    setExpandedCategory(categoryName);
   };
 
   return (
@@ -88,48 +84,48 @@ const CategoryPage = () => {
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
         />
-        <input
-          type="text"
-          placeholder="Enter description"
-          value={newDescription}
-          onChange={(e) => setNewDescription(e.target.value)}
-        />
         <button type="submit">Add</button>
       </form>
 
       {/* List categories */}
       <ul className="category-list">
-        {categories.map((cat) => (
-          <li key={cat._id} className="category-item">
-            {editId === cat._id ? (
-              <div>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                />
-                <input
-                  type="text"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                />
-                <button onClick={saveEdit}>Save</button>
-                <button onClick={() => setEditId(null)}>Cancel</button>
+        {categories.map((cat) => {
+          const catName = cat.name || cat.categoryName;
+          const isExpanded = expandedCategory === catName;
+
+          return (
+            <li key={cat._id} className="category-item">
+              <div
+                className="category-header"
+                style={{ cursor: "pointer" }}
+                onClick={() => toggleCategory(catName)}
+              >
+                <span className="category-name">{catName} {isExpanded ? "▼" : "▶"}</span>
               </div>
-            ) : (
-              <div>
-                <strong>{cat.categoryName}</strong> — {cat.description || "No description"}
-                <div className="category-buttons">
-                  <button onClick={() => startEdit(cat)}>Edit</button>
-                  <button onClick={() => deleteCategory(cat._id)}>Delete</button>
-                  <button onClick={() => alert(cat.description || "No description")}>
-                    Description
-                  </button>
-                </div>
+
+              {/* Expanded products for this specific category ONLY */}
+              {isExpanded && categoryProducts[catName] && categoryProducts[catName].length > 0 && (
+                <ul className="products-list">
+                  {categoryProducts[catName].map((p) => (
+                    <li key={p._id}>
+                      {p.productName} — ${p.productPrice.toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Delete button at the bottom, centered */}
+              <div style={{ display: "flex", justifyContent: "center", marginTop: "8px" }}>
+                <button
+                  style={{ backgroundColor: "crimson", color: "white", padding: "6px 12px", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                  onClick={() => deleteCategory(cat._id)}
+                >
+                  🗑 Delete
+                </button>
               </div>
-            )}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

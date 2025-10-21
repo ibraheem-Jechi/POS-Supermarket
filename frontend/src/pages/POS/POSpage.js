@@ -13,6 +13,7 @@ export default function POSPage({ user }) {
   const [invoiceNumber, setInvoiceNumber] = useState(null); // 🟢 لتخزين رقم الفاتورة
 
   const [category, setCategory] = useState("All");
+  const [categories, setCategories] = useState(["All"]);
 
   useEffect(() => {
     setLoading(true);
@@ -20,12 +21,15 @@ export default function POSPage({ user }) {
       .then(res => setProducts(res.data))
       .catch(() => setErr("Failed to load products"))
       .finally(() => setLoading(false));
-  }, []);
 
-  const categories = useMemo(
-    () => ["All", ...Array.from(new Set(products.map(p => p.productCategory)))],
-    [products]
-  );
+    // NEW: Fetch categories from backend
+    axios.get("http://localhost:5000/api/categories")
+      .then(res => {
+        const catList = ["All", ...res.data.map(c => c.categoryName)];
+        setCategories(catList);
+      })
+      .catch(() => console.error("Failed to load categories"));
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

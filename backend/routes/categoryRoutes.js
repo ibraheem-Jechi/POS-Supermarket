@@ -33,8 +33,8 @@ router.post("/", async (req, res) => {
     }
 
     const category = new Category({
-      name,
-      categoryName: name, // required for unique index
+      name,              // keep legacy field
+      categoryName: name, // used for unique index
       description,
     });
 
