@@ -1,7 +1,36 @@
 // routes/saleRoutes.js
 const express = require('express');
 const router = express.Router();
-const Cart = require('../models/cart'); // ✅ Make sure this file exists as /models/cartModel.js
+const Cart = require('../models/cart');
+
+// ✅ GET sales statistics (today, week, month, total)
+router.get('/stats', async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(startOfDay);
+    startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const all = await Cart.find();
+    const today = all.filter(s => new Date(s.createdAt) >= startOfDay);
+    const week = all.filter(s => new Date(s.createdAt) >= startOfWeek);
+    const month = all.filter(s => new Date(s.createdAt) >= startOfMonth);
+
+    const sum = (arr) => arr.reduce((acc, s) => acc + (s.total || 0), 0);
+
+    res.json({
+      totalReceipts: all.length,
+      totalSales: sum(all),
+      today: { receipts: today.length, total: sum(today) },
+      week: { receipts: week.length, total: sum(week) },
+      month: { receipts: month.length, total: sum(month) },
+      averageSale: all.length > 0 ? sum(all) / all.length : 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ✅ GET all sales
 router.get('/', async (req, res) => {
