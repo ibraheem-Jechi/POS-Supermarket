@@ -3,14 +3,15 @@ import api from "../../api/client";
 import axios from "axios";
 import "./pos.css";
 
+
 export default function POSPage({ user }) {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState({});
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState(null); // 🟢 لتخزين رقم الفاتورة
 
-  // NEW: category filter state
   const [category, setCategory] = useState("All");
 
   useEffect(() => {
@@ -61,37 +62,37 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
-  // ---- NEW: Save sale to "sales" collection ----
-    const completeSale = async () => {
-    if (!lines.length) return alert("Cart is empty");
+  // 🟢 Checkout
+const completeSale = async () => {
+  if (!lines.length) return alert("Cart is empty");
 
-    try {
-      // Build sale data that matches your backend schema
-      const saleData = {
-        lines: lines.map(i => ({
-          name: i.name,
-          price: i.price,
-          qty: i.qty
-        })),
-        subtotal,
-        tax,
-        total
-      };
+  try {
+    const cartData = {
+      lines,
+      subtotal,
+      tax,
+      total,
+      cashier: user?.username || "unknown", // نخزن الكاشير
+    };
 
-      console.log("🟢 Sending sale data:", saleData);
+    const res = await axios.post("http://localhost:5000/api/carts", cartData);
 
-      await axios.post("http://localhost:5000/api/sales", saleData);
-
-      alert("✅ Payment complete! Sale recorded.");
-      setCart({}); // Clear cart
-    } catch (err) {
-      console.error("❌ Failed to save sale:", err);
-      alert("❌ Failed to save sale");
+    if (res.data && res.data.invoiceNumber) {
+      setInvoiceNumber(res.data.invoiceNumber);
+      alert(`✅ Payment complete! Invoice #${res.data.invoiceNumber}`);
+    } else {
+      alert("✅ Payment complete! (no invoice number returned)");
     }
-  };
+
+    setCart({}); // تفريغ السلة بعد الدفع
+  } catch (err) {
+    console.error("❌ Failed to save cart:", err.response?.data || err.message);
+    alert("❌ Failed to save cart");
+  }
+};
 
 
-  // --- Barcode quick add (optional) ---
+  // --- Barcode quick add ---
   const [barcode, setBarcode] = useState("");
   const onBarcodeEnter = (e) => {
     if (e.key !== "Enter") return;
@@ -124,7 +125,7 @@ export default function POSPage({ user }) {
           ))}
         </div>
 
-        {/* Barcode input (optional) */}
+        {/* Barcode input */}
         <div className="barcode-row">
           <input
             value={barcode}
@@ -152,6 +153,12 @@ export default function POSPage({ user }) {
 
       <aside className="pos__cart">
         <h3>Cart</h3>
+        {invoiceNumber && (
+  <div className="invoice-info">
+    <strong>Invoice:</strong> {invoiceNumber+1}
+  </div>
+)}
+
         {!lines.length ? (
           <div className="muted">No items yet</div>
         ) : (
@@ -180,8 +187,7 @@ export default function POSPage({ user }) {
           <div className="total"><span>Total</span><span>${total.toFixed(2)}</span></div>
         </div>
 
-        {/* Updated checkout button */}
-        <button className="checkout" onClick={completeSale}>Complete Sale</button>
+        <button className="checkout" onClick={completeSale}>Checkout</button>
       </aside>
     </div>
   );
