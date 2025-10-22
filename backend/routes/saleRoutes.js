@@ -56,10 +56,17 @@ router.get('/:id', async (req, res) => {
 // ✅ POST new sale
 router.post('/', async (req, res) => {
   try {
-    const { lines, subtotal, tax, total, cashier } = req.body;
-    const cart = new Cart({ lines, subtotal, tax, total, cashier });
-    await cart.save();
-    res.status(201).json({ message: 'Sale recorded', cart });
+  const { lines, subtotal, tax, total, cashier } = req.body;
+
+  // generate a simple incremental invoiceNumber (find highest existing and add 1)
+  // This is simple and works for low-concurrency environments. For high concurrency
+  // consider a dedicated counters collection or a transaction.
+  const last = await Cart.findOne().sort({ invoiceNumber: -1 }).limit(1).exec();
+  const nextInvoice = last && typeof last.invoiceNumber === 'number' ? last.invoiceNumber + 1 : 1;
+
+  const cart = new Cart({ invoiceNumber: nextInvoice, lines, subtotal, tax, total, cashier });
+  await cart.save();
+  res.status(201).json({ message: 'Sale recorded', cart, invoiceNumber: nextInvoice });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
