@@ -12,7 +12,8 @@ const ProductsPage = () => {
     barcode: "",
     productCategory: "",
     quantity: "",
-    minStockLevel: "10"
+    minStockLevel: "10",
+    expiryDate: ""
   });
   const [editingId, setEditingId] = useState(null);
 
@@ -21,6 +22,22 @@ const ProductsPage = () => {
     try {
       const res = await axios.get("http://localhost:5000/api/products");
       setProducts(res.data);
+
+      // ⚠️ Check expiry alert
+      const expiring = res.data.filter(p => {
+        if (!p.expiryDate) return false;
+        const diff = (new Date(p.expiryDate) - new Date()) / (1000 * 60 * 60 * 24);
+        return diff <= 7 && diff >= 0;
+      });
+      if (expiring.length > 0) {
+        alert(
+          "⚠️ Some products are expiring soon:\n" +
+          expiring
+            .map(p => `${p.productName} (Expiry: ${new Date(p.expiryDate).toLocaleDateString()})`)
+            .join("\n")
+        );
+      }
+
     } catch (err) {
       console.error("Error fetching products:", err);
     }
@@ -49,7 +66,8 @@ const ProductsPage = () => {
         ...newProduct,
         productPrice: parseFloat(newProduct.productPrice),
         quantity: parseInt(newProduct.quantity) || 0,
-        minStockLevel: parseInt(newProduct.minStockLevel) || 10
+        minStockLevel: parseInt(newProduct.minStockLevel) || 10,
+        expiryDate: newProduct.expiryDate ? new Date(newProduct.expiryDate) : null
       };
 
       if (editingId) {
@@ -59,13 +77,14 @@ const ProductsPage = () => {
         await axios.post("http://localhost:5000/api/products", productData);
         alert("✅ Product added successfully");
       }
-      setNewProduct({ 
-        productName: "", 
-        productPrice: "", 
-        barcode: "", 
-        productCategory: "", 
+      setNewProduct({
+        productName: "",
+        productPrice: "",
+        barcode: "",
+        productCategory: "",
         quantity: "",
-        minStockLevel: "10"
+        minStockLevel: "10",
+        expiryDate: ""
       });
       setEditingId(null);
       fetchProducts();
@@ -83,9 +102,10 @@ const ProductsPage = () => {
       barcode: p.barcode || "",
       quantity: p.quantity || 0,
       minStockLevel: p.minStockLevel || 10,
-      productCategory: typeof p.productCategory === 'string' 
-        ? p.productCategory 
-        : (p.productCategory?.name || "")
+      productCategory: typeof p.productCategory === "string"
+        ? p.productCategory
+        : (p.productCategory?.name || ""),
+      expiryDate: p.expiryDate ? p.expiryDate.substring(0, 10) : ""
     });
     setEditingId(p._id);
   };
@@ -93,7 +113,6 @@ const ProductsPage = () => {
   // Delete product
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
-    
     try {
       await axios.delete(`http://localhost:5000/api/products/${id}`);
       alert("✅ Product deleted");
@@ -110,11 +129,22 @@ const ProductsPage = () => {
     (p.barcode || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  // Get stock status
+  // Stock status
   const getStockStatus = (product) => {
     if (product.quantity === 0) return { status: "Out of Stock", color: "#e74c3c" };
     if (product.quantity <= (product.minStockLevel || 10)) return { status: "Low Stock", color: "#f39c12" };
     return { status: "In Stock", color: "#27ae60" };
+  };
+
+  // Expiry status
+  const getExpiryStatus = (product) => {
+    if (!product.expiryDate) return { status: "No Date", color: "#7f8c8d" };
+    const today = new Date();
+    const expiry = new Date(product.expiryDate);
+    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { status: "Expired", color: "#e74c3c" };
+    if (diffDays <= 7) return { status: "Expiring Soon", color: "#f39c12" };
+    return { status: "Valid", color: "#27ae60" };
   };
 
   return (
@@ -164,6 +194,12 @@ const ProductsPage = () => {
           value={newProduct.minStockLevel}
           onChange={(e) => setNewProduct({ ...newProduct, minStockLevel: e.target.value })}
         />
+        <input
+          type="date"
+          placeholder="Expiry Date"
+          value={newProduct.expiryDate}
+          onChange={(e) => setNewProduct({ ...newProduct, expiryDate: e.target.value })}
+        />
         <select
           value={newProduct.productCategory}
           onChange={(e) => setNewProduct({ ...newProduct, productCategory: e.target.value })}
@@ -180,18 +216,19 @@ const ProductsPage = () => {
           {editingId ? "Update" : "Add"} Product
         </button>
         {editingId && (
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="btn-cancel"
             onClick={() => {
               setEditingId(null);
-              setNewProduct({ 
-                productName: "", 
-                productPrice: "", 
-                barcode: "", 
-                productCategory: "", 
+              setNewProduct({
+                productName: "",
+                productPrice: "",
+                barcode: "",
+                productCategory: "",
                 quantity: "",
-                minStockLevel: "10"
+                minStockLevel: "10",
+                expiryDate: ""
               });
             }}
           >
@@ -228,6 +265,7 @@ const ProductsPage = () => {
               <th>Price</th>
               <th>Quantity</th>
               <th>Status</th>
+              <th>Expiry Date</th>
               <th>Category</th>
               <th style={{ width: "150px" }}>Actions</th>
             </tr>
@@ -236,6 +274,7 @@ const ProductsPage = () => {
             {filteredProducts.length > 0 ? (
               filteredProducts.map((p) => {
                 const stockStatus = getStockStatus(p);
+                const expiryStatus = getExpiryStatus(p);
                 return (
                   <tr key={p._id}>
                     <td>{p.productName}</td>
@@ -249,9 +288,12 @@ const ProductsPage = () => {
                         {stockStatus.status}
                       </span>
                     </td>
+                    <td style={{ color: expiryStatus.color, fontWeight: "bold" }}>
+                      {p.expiryDate ? new Date(p.expiryDate).toLocaleDateString() : "N/A"}
+                    </td>
                     <td>
-                      {typeof p.productCategory === 'string' 
-                        ? p.productCategory 
+                      {typeof p.productCategory === "string"
+                        ? p.productCategory
                         : (p.productCategory?.name || "N/A")}
                     </td>
                     <td>
@@ -263,7 +305,7 @@ const ProductsPage = () => {
               })
             ) : (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "20px", color: "#7f8c8d" }}>
+                <td colSpan="8" style={{ textAlign: "center", padding: "20px", color: "#7f8c8d" }}>
                   No products found
                 </td>
               </tr>
