@@ -7,8 +7,9 @@ const productSchema = new mongoose.Schema({
   productCategory: { type: String, required: true },
   barcode: { type: String },
   productImage: { type: String },
-  quantity: { type: Number, required: true, default: 0 }, // ✅ NEW: Inventory quantity
-  minStockLevel: { type: Number, default: 10 } // ✅ NEW: Alert threshold (optional)
+  quantity: { type: Number, required: true, default: 0 },
+  minStockLevel: { type: Number, default: 10 },
+  expiryDate: { type: Date }   // ✅ NEW: Expiry date field
 });
 
 module.exports = mongoose.model("Product", productSchema);

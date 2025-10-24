@@ -41,15 +41,18 @@ app.use('/api/sales', saleRoutes); // frontend fetches all carts
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+const categoryRoutes = require("./routes/categoryRoutes");
+app.use("/api/categories", categoryRoutes);
+
+// ✅ NEW ALERTS ROUTE
+const alertsRoute = require("./routes/alerts");
+app.use("/api/alerts", alertsRoute);
+
 // --------------------------
 // Server & Database Setup
 // --------------------------
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
-const categoryRoutes = require("./routes/categoryRoutes");
-app.use("/api/categories", categoryRoutes);
-
-
 
 mongoose.connect(MONGO)
   .then(() => {

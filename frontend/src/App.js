@@ -6,6 +6,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
+import AlertsPage from "./pages/AlertsPage"; // ✅ NEW IMPORT
 import { FaBars } from "react-icons/fa";
 
 function App() {
@@ -81,7 +82,12 @@ function App() {
       </header>
 
       <div style={{ display: "flex", flex: 1 }}>
-        <Sidebar user={user} setPage={setPage} setUser={setUser} collapsed={collapsed} />
+        <Sidebar
+          user={user}
+          setPage={setPage}
+          setUser={setUser}
+          collapsed={collapsed}
+        />
 
         <div
           style={{
@@ -101,6 +107,7 @@ function App() {
           {page === "dashboard" && <DashboardPage />}
           {page === "salesHistory" && <SalesHistory user={user} />}
           {page === "category" && <CategoryPage />}
+          {page === "alerts" && <AlertsPage />} {/* ✅ NEW ALERTS PAGE */}
         </div>
       </div>
     </div>

@@ -59,3 +59,58 @@
   z-index: 100;
   color: #2c3e50;
 }
+
+/* Sidebar button base */
+.sidebar .nav-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  position: relative;
+  border-radius: 6px;
+  transition: background .12s;
+}
+
+.sidebar .nav-button:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+/* Badge */
+.sidebar .badge {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: #e53935; /* red */
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+/* Logout button matches nav style but pinned to bottom if you want */
+.sidebar .logout-btn {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  background: #fff0f0;
+  color: #d32f2f;
+  border-radius: 6px;
+  cursor: pointer;
+}
