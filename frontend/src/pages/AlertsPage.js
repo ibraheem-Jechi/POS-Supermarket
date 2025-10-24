@@ -30,7 +30,9 @@ function AlertsPage() {
   const filteredAlerts =
     filter === "all"
       ? alerts
-      : alerts.filter((a) => a.type.toLowerCase().replace(" ", "_") === filter);
+      : alerts.filter(
+          (a) => a.type.toLowerCase().replace(" ", "_") === filter
+        );
 
   const getAlertColor = (type) => {
     switch (type.toLowerCase()) {
@@ -49,12 +51,16 @@ function AlertsPage() {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2 style={{ marginBottom: "15px", display: "flex", alignItems: "center" }}>
+      <h2
+        style={{ marginBottom: "15px", display: "flex", alignItems: "center" }}
+      >
         <FaExclamationTriangle style={{ marginRight: "10px" }} />
         Product Alerts
       </h2>
 
-      <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
+      <div
+        style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}
+      >
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
