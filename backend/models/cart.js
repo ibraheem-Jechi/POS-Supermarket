@@ -16,5 +16,6 @@ const cartSchema = new mongoose.Schema({
   cashier: { type: String }, // اسم الكاشير (من POSPage)
   createdAt: { type: Date, default: Date.now }
 });
+cartSchema.index({ createdAt: 1 });
 
 module.exports = mongoose.model('Cart', cartSchema);

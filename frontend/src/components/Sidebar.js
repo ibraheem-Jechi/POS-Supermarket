@@ -11,6 +11,9 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 
+
+
+
 function Sidebar({ user, setPage, setUser, collapsed }) {
   const [alertCount, setAlertCount] = useState(0);
 
@@ -70,7 +73,10 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
       <button className="nav-button" onClick={() => setPage('salesHistory')}>
         <FaHistory /> <span>Sales History</span>
       </button>
-
+      
+      <button className="nav-button" onClick={() => setPage('dailyReport')}>
+      <FaChartLine /> <span>Daily Report</span>
+    </button>
       {/* Alerts button - visible for all (you can restrict to admin if needed) */}
       <button className="nav-button" onClick={() => setPage('alerts')}>
         <FaBell /> <span>Alerts</span>
@@ -78,6 +84,7 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
           <span className="badge" aria-label={`${alertCount} alerts`}>{alertCount}</span>
         )}
       </button>
+      
 
       <button
         className="logout-btn"

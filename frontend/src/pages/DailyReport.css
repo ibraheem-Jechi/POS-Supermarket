@@ -1,0 +1,52 @@
+.report-container {
+  padding: 15px;
+  background: #fff;
+  border-radius: 6px;
+}
+
+.invoice.compact {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.invoice-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.summary-table, .compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+
+.summary-table th, .summary-table td,
+.compact-table th, .compact-table td {
+  border: 1px solid #ccc;
+  padding: 4px 6px;
+  text-align: left;
+}
+
+.invoice-title {
+  margin: 4px 0;
+  font-weight: bold;
+}
+
+.invoice-block {
+  margin-bottom: 10px;
+}
+
+/* ✅ Print optimization */
+@media print {
+  body * { visibility: hidden; }
+  .invoice, .invoice * { visibility: visible; }
+  .invoice { 
+    position: absolute; 
+    top: 0; left: 0; 
+    width: 100%; 
+    background: #fff;
+  }
+  .report-controls, .report-container > h2 {
+    display: none;
+  }
+}

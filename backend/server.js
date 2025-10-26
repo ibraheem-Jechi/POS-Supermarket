@@ -48,6 +48,12 @@ app.use("/api/categories", categoryRoutes);
 const alertsRoute = require("./routes/alerts");
 app.use("/api/alerts", alertsRoute);
 
+
+
+const reportRoutes = require("./routes/reportRoutes");
+app.use("/api/reports", /* auth("admin"), */ reportRoutes); // يفضل تحط ميدل وير الأدمن إذا مركّبه
+
+
 // --------------------------
 // Server & Database Setup
 // --------------------------
@@ -85,3 +91,4 @@ mongoose.connect(MONGO)
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
+  

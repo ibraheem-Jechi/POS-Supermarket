@@ -7,6 +7,7 @@ import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
 import AlertsPage from "./pages/AlertsPage"; // ✅ NEW IMPORT
+import DailyReport from "./pages/DailyReport"; // ✅ NEW IMPORT
 import { FaBars } from "react-icons/fa";
 
 function App() {
@@ -108,6 +109,7 @@ function App() {
           {page === "salesHistory" && <SalesHistory user={user} />}
           {page === "category" && <CategoryPage />}
           {page === "alerts" && <AlertsPage />} {/* ✅ NEW ALERTS PAGE */}
+          {page === "dailyReport" && <DailyReport user={user} />} {/* ✅ NEW */}
         </div>
       </div>
     </div>
