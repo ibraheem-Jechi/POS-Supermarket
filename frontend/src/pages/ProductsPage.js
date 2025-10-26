@@ -6,6 +6,8 @@ const ProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState("");
+  const [expiryWarnings, setExpiryWarnings] = useState([]);
+  const [stockWarnings, setStockWarnings] = useState([]);
   const [newProduct, setNewProduct] = useState({
     productName: "",
     productPrice: "",
@@ -23,20 +25,42 @@ const ProductsPage = () => {
       const res = await axios.get("http://localhost:5000/api/products");
       setProducts(res.data);
 
-      // ⚠️ Check expiry alert
+      // ⚠️ Expiry Alerts
       const expiring = res.data.filter(p => {
         if (!p.expiryDate) return false;
-        const diff = (new Date(p.expiryDate) - new Date()) / (1000 * 60 * 60 * 24);
-        return diff <= 7 && diff >= 0;
+        const today = new Date();
+        const expiry = new Date(p.expiryDate);
+        const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        return diffDays <= 7; // قريب أو منتهي
       });
+
       if (expiring.length > 0) {
-        alert(
-          "⚠️ Some products are expiring soon:\n" +
-          expiring
-            .map(p => `${p.productName} (Expiry: ${new Date(p.expiryDate).toLocaleDateString()})`)
-            .join("\n")
-        );
+        const warnings = expiring.map(p => {
+          const expiry = new Date(p.expiryDate);
+          const today = new Date();
+          const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+
+          if (diffDays < 0) {
+            return `❗ ${p.productName} has expired on ${expiry.toLocaleDateString()}`;
+          } else {
+            return `⚠️ ${p.productName} will expire in ${diffDays} day(s) (${expiry.toLocaleDateString()})`;
+          }
+        });
+        setExpiryWarnings(warnings);
+      } else {
+        setExpiryWarnings([]);
       }
+
+      // ⚠️ Stock Alerts
+      const lowStock = res.data.filter(p => p.quantity > 0 && p.quantity <= (p.minStockLevel || 10));
+      const outOfStock = res.data.filter(p => p.quantity === 0);
+
+      const stockMsgs = [
+        ...lowStock.map(p => `⚠️ ${p.productName} is low in stock (only ${p.quantity} left)`),
+        ...outOfStock.map(p => `❗ ${p.productName} is OUT OF STOCK!`)
+      ];
+
+      setStockWarnings(stockMsgs);
 
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -237,23 +261,29 @@ const ProductsPage = () => {
         )}
       </form>
 
-      {/* Stock Summary */}
-      <div className="stock-summary">
-        <div className="summary-item">
-          <span className="summary-label">Total Products:</span>
-          <span className="summary-value">{products.length}</span>
+      {/* ⚠️ Expiry Banner */}
+      {expiryWarnings.length > 0 && (
+        <div className="expiry-banner">
+          <h4>⚠️ Expiry Alerts</h4>
+          <ul>
+            {expiryWarnings.map((msg, idx) => (
+              <li key={idx}>{msg}</li>
+            ))}
+          </ul>
         </div>
-        <div className="summary-item out-of-stock">
-          <span className="summary-label">Out of Stock:</span>
-          <span className="summary-value">{products.filter(p => p.quantity === 0).length}</span>
+      )}
+
+      {/* ⚠️ Stock Banner */}
+      {stockWarnings.length > 0 && (
+        <div className="stock-banner">
+          <h4>⚠️ Stock Alerts</h4>
+          <ul>
+            {stockWarnings.map((msg, idx) => (
+              <li key={idx}>{msg}</li>
+            ))}
+          </ul>
         </div>
-        <div className="summary-item low-stock">
-          <span className="summary-label">Low Stock:</span>
-          <span className="summary-value">
-            {products.filter(p => p.quantity > 0 && p.quantity <= (p.minStockLevel || 10)).length}
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* Products Table */}
       <div className="table-wrapper">
