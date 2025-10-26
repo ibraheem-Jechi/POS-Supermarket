@@ -91,15 +91,18 @@ const ProductsPage = () => {
         productPrice: parseFloat(newProduct.productPrice),
         quantity: parseInt(newProduct.quantity) || 0,
         minStockLevel: parseInt(newProduct.minStockLevel) || 10,
-        expiryDate: newProduct.expiryDate ? new Date(newProduct.expiryDate) : null
+        // send ISO date string (YYYY-MM-DD) or null — backend will convert to Date
+        expiryDate: newProduct.expiryDate ? newProduct.expiryDate : null
       };
 
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/products/${editingId}`, productData);
-        alert("✅ Product updated successfully");
+  const res = await axios.put(`http://localhost:5000/api/products/${editingId}`, productData);
+  console.log('PUT /api/products response:', res.data);
+  alert("✅ Product updated successfully");
       } else {
-        await axios.post("http://localhost:5000/api/products", productData);
-        alert("✅ Product added successfully");
+  const res = await axios.post("http://localhost:5000/api/products", productData);
+  console.log('POST /api/products response:', res.data);
+  alert("✅ Product added successfully");
       }
       setNewProduct({
         productName: "",

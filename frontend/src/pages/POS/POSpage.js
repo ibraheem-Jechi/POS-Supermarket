@@ -91,6 +91,20 @@ export default function POSPage({ user }) {
     if (!lines.length) return alert("Cart is empty");
 
     try {
+     const saleData = {
+  lines: lines.map(i => ({
+    productId: i.productId,  // <--- add this
+    name: i.name,
+    price: i.price,
+    qty: i.qty
+  })),
+  subtotal,
+  tax,
+  total
+};
+
+      await axios.post("http://localhost:5000/api/sales", saleData);
+      alert("✅ Payment complete! Sale recorded.");
       const cartData = {
         lines,
         subtotal,

@@ -20,8 +20,18 @@ router.get("/", async (req, res) => {
 // ✅ Add product
 router.post("/", async (req, res) => {
   try {
-    const product = new Product(req.body);
+  const payload = { ...req.body };
+  console.log('POST /api/products incoming payload:', JSON.stringify(payload));
+    // Normalize expiryDate: ignore empty strings and invalid dates
+    if (payload.expiryDate) {
+      const d = new Date(payload.expiryDate);
+      if (!isNaN(d.getTime())) payload.expiryDate = d; else delete payload.expiryDate;
+    } else {
+      delete payload.expiryDate;
+    }
+    const product = new Product(payload);
     const saved = await product.save();
+  console.log('POST /api/products saved:', JSON.stringify(saved));
     res.status(201).json(saved);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -31,9 +41,19 @@ router.post("/", async (req, res) => {
 // ✅ Update product
 router.put("/:id", async (req, res) => {
   try {
-    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, {
+  const payload = { ...req.body };
+  console.log(`PUT /api/products/${req.params.id} incoming payload:`, JSON.stringify(payload));
+    if (payload.expiryDate) {
+      const d = new Date(payload.expiryDate);
+      if (!isNaN(d.getTime())) payload.expiryDate = d; else delete payload.expiryDate;
+    } else {
+      delete payload.expiryDate;
+    }
+    const updated = await Product.findByIdAndUpdate(req.params.id, payload, {
       new: true,
+      runValidators: true,
     });
+  console.log(`PUT /api/products/${req.params.id} updated:`, JSON.stringify(updated));
     res.json(updated);
   } catch (err) {
     res.status(400).json({ message: err.message });
