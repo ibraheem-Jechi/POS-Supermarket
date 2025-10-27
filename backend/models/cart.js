@@ -4,7 +4,8 @@ const lineItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: false },
   name: { type: String, required: true },
   price: { type: Number, required: true },
-  qty: { type: Number, required: true }
+  qty: { type: Number, required: true },
+   productCategory: { type: String }
 });
 
 const cartSchema = new mongoose.Schema({
