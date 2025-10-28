@@ -1,12 +1,12 @@
 .sidebar {
   width: 220px;
-  background: linear-gradient(180deg, #74ebd5, #ACB6E5);
+  background: linear-gradient(180deg, #3a7bd5, #00d2ff); /* deeper, vibrant gradient */
   min-height: 100vh;
   padding: 20px;
-  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  box-shadow: 3px 0 15px rgba(0,0,0,0.15);
   font-family: 'Segoe UI', sans-serif;
-  color: white;
-  transition: width 0.3s ease;
+  color: #fefefe;
+  transition: width 0.3s ease, background 0.3s ease;
   overflow: hidden;
 }
 
@@ -19,35 +19,39 @@
   margin-bottom: 20px;
   white-space: nowrap;
   overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .sidebar button {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 10px;
+  padding: 10px 12px;
   margin-bottom: 10px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: white;
-  transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
+  color: #fff;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
   white-space: nowrap;
   overflow: hidden;
 }
 
 .sidebar button:hover {
-  background: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.25);
   color: #000;
+  transform: scale(1.02);
 }
 
 .sidebar .logout-btn {
-  background: #e74c3c !important;
+  background: #ff6b6b; /* soft but noticeable red */
   margin-top: 30px;
-  color: white;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .hamburger {
@@ -57,29 +61,30 @@
   font-size: 24px;
   cursor: pointer;
   z-index: 100;
-  color: #2c3e50;
+  color: #fefefe;
 }
 
-/* Sidebar button base */
+/* Sidebar nav buttons */
 .sidebar .nav-button {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  background: transparent;
+  background: rgba(255,255,255,0.05);
   border: none;
   color: inherit;
   text-align: left;
   cursor: pointer;
   font-size: 14px;
+  border-radius: 8px;
   position: relative;
-  border-radius: 6px;
-  transition: background .12s;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
 
 .sidebar .nav-button:hover {
-  background: rgba(0,0,0,0.04);
+  background: rgba(255,255,255,0.2);
+  transform: translateX(4px);
 }
 
 /* Badge */
@@ -90,7 +95,7 @@
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  background: #e53935; /* red */
+  background: #ff3d00; /* stronger orange-red */
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -98,19 +103,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-/* Logout button matches nav style but pinned to bottom if you want */
+/* Logout button pinned to bottom */
 .sidebar .logout-btn {
-  margin-top: 12px;
+  margin-top: auto;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
   border: none;
-  background: #fff0f0;
-  color: #d32f2f;
-  border-radius: 6px;
+  background: #ff6b6b;
+  color: #fff;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.sidebar .logout-btn:hover {
+  background: #ff5252;
+  transform: translateX(3px);
 }
