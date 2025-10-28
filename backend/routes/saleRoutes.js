@@ -2,8 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const Cart = require('../models/cart');
+const User = require('../models/userModel'); // for tracking points per user
 
-// ✅ GET sales statistics (today, week, month, total)
+// === GET sales statistics ===
 router.get('/stats', async (req, res) => {
   try {
     const now = new Date();
@@ -17,7 +18,7 @@ router.get('/stats', async (req, res) => {
     const week = all.filter(s => new Date(s.createdAt) >= startOfWeek);
     const month = all.filter(s => new Date(s.createdAt) >= startOfMonth);
 
-    const sum = (arr) => arr.reduce((acc, s) => acc + (s.total || 0), 0);
+    const sum = arr => arr.reduce((acc, s) => acc + (s.total || 0), 0);
 
     res.json({
       totalReceipts: all.length,
@@ -32,17 +33,17 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// ✅ GET all sales
+// === GET all sales ===
 router.get('/', async (req, res) => {
   try {
-    const carts = await Cart.find().sort({ createdAt: -1 }); // newest first
+    const carts = await Cart.find().sort({ createdAt: -1 });
     res.json(carts);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ GET single sale by ID
+// === GET single sale by ID ===
 router.get('/:id', async (req, res) => {
   try {
     const sale = await Cart.findById(req.params.id);
@@ -53,26 +54,57 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ✅ POST new sale
+// === POST new sale ===
 router.post('/', async (req, res) => {
   try {
+  console.log('POST /api/sales incoming body:', req.body);
   const { lines, subtotal, tax, total, cashier } = req.body;
 
-  // generate a simple incremental invoiceNumber (find highest existing and add 1)
-  // This is simple and works for low-concurrency environments. For high concurrency
-  // consider a dedicated counters collection or a transaction.
-  const last = await Cart.findOne().sort({ invoiceNumber: -1 }).limit(1).exec();
-  const nextInvoice = last && typeof last.invoiceNumber === 'number' ? last.invoiceNumber + 1 : 1;
+    // Generate incremental invoice number
+    const last = await Cart.findOne().sort({ invoiceNumber: -1 }).limit(1).exec();
+    const nextInvoice = last && typeof last.invoiceNumber === 'number' ? last.invoiceNumber + 1 : 1;
 
-  const cart = new Cart({ invoiceNumber: nextInvoice, lines, subtotal, tax, total, cashier });
-  await cart.save();
-  res.status(201).json({ message: 'Sale recorded', cart, invoiceNumber: nextInvoice });
+  // === Calculate loyalty points ===
+  const subtotalNum = Number(subtotal) || 0;
+  const taxNum = Number(tax) || 0;
+  const totalNum = Number(total) || +(subtotalNum + taxNum).toFixed(2) || 0;
+  const pointsEarned = Math.floor(totalNum / 10); // 1 point per $10 spent
+  console.log('Loyalty calc: subtotal=', subtotalNum, 'tax=', taxNum, 'total=', totalNum, 'points=', pointsEarned);
+
+    // Save sale with loyalty points
+    const cart = new Cart({ 
+      invoiceNumber: nextInvoice, 
+      lines, 
+      subtotal: subtotalNum, 
+      tax: taxNum, 
+      total: totalNum, 
+      cashier, 
+      loyaltyPoints: pointsEarned 
+    });
+    await cart.save();
+    console.log('POST /api/sales saved cart:', cart);
+
+    // Optional: update user/customer accumulated points
+    if (cashier) {
+      const user = await User.findOne({ username: cashier });
+      if (user) {
+        user.loyaltyPoints = (user.loyaltyPoints || 0) + pointsEarned;
+        await user.save();
+      }
+    }
+
+    res.status(201).json({
+      message: 'Sale recorded',
+      cart,
+      invoiceNumber: nextInvoice,
+      loyaltyPoints: pointsEarned
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ✅ UPDATE sale
+// === UPDATE sale ===
 router.put('/:id', async (req, res) => {
   try {
     const updated = await Cart.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -83,7 +115,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ✅ DELETE sale
+// === DELETE sale ===
 router.delete('/:id', async (req, res) => {
   try {
     const deleted = await Cart.findByIdAndDelete(req.params.id);

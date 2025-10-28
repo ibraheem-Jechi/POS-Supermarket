@@ -12,6 +12,7 @@ export default function POSPage({ user }) {
   const [category, setCategory] = useState("All");
   const [barcode, setBarcode] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState(null);
+  const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0); // ✅ NEW
 
   // Fetch products
   useEffect(() => {
@@ -91,30 +92,22 @@ export default function POSPage({ user }) {
     if (!lines.length) return alert("Cart is empty");
 
     try {
-     const saleData = {
-  lines: lines.map(i => ({
-    productId: i.productId,  // <--- add this
-    name: i.name,
-    price: i.price,
-    qty: i.qty
-  })),
-  subtotal,
-  tax,
-  total
-};
-
-      await axios.post("http://localhost:5000/api/sales", saleData);
-      alert("✅ Payment complete! Sale recorded.");
-      const cartData = {
-        lines,
+      const saleData = {
+        lines: lines.map((i) => ({
+          productId: i.productId,
+          name: i.name,
+          price: i.price,
+          qty: i.qty,
+        })),
         subtotal,
         tax,
         total,
         cashier: user?.username || "unknown",
       };
 
-      // 1) Save cart/invoice
-      const res = await axios.post("http://localhost:5000/api/carts", cartData);
+  console.log('POS completeSale sending:', saleData);
+  const res = await axios.post("http://localhost:5000/api/sales", saleData);
+  console.log('POS completeSale response:', res.data);
 
       // 2) Update stock quantities
       const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
@@ -135,10 +128,14 @@ export default function POSPage({ user }) {
         alert(stockRes.data.warnings.join("\n"));
       }
 
-      // 3) Show success with invoice number
-      if (res.data && res.data.invoiceNumber) {
+      // 3) Show success with invoice number & loyalty points
+      if (res.data && res.data.invoiceNumber != null) {
         setInvoiceNumber(res.data.invoiceNumber);
-        alert(`✅ Payment complete! Invoice #${res.data.invoiceNumber}`);
+        setLoyaltyPointsEarned(res.data.loyaltyPoints || 0); // ✅ NEW
+        alert(
+          `✅ Payment complete! Invoice #${res.data.invoiceNumber}\n` +
+          `🎁 Loyalty Points Earned: ${res.data.loyaltyPoints || 0}`
+        );
       } else {
         alert("✅ Payment complete! (no invoice number returned)");
       }
@@ -284,6 +281,11 @@ export default function POSPage({ user }) {
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
+              {invoiceNumber && (
+                <div className="mt-2 text-success">
+                  🎁 Loyalty Points Earned: {loyaltyPointsEarned}
+                </div>
+              )}
             </div>
 
             {/* Checkout */}

@@ -14,6 +14,8 @@ const cartSchema = new mongoose.Schema({
   subtotal: { type: Number, required: true, default: 0 },
   tax: { type: Number, required: true, default: 0 },
   total: { type: Number, required: true, default: 0 },
+  // loyalty points awarded for the sale
+  loyaltyPoints: { type: Number, default: 0 },
   cashier: { type: String }, // اسم الكاشير (من POSPage)
   createdAt: { type: Date, default: Date.now }
 });

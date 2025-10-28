@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['cashier', 'finance', 'accountant', 'admin'], required: true },
-  salary: { type: Number, default: 0 } // 🆕 Added salary field
+  salary: { type: Number, default: 0 }, // 🆕 Added salary field
+  loyaltyPoints: { type: Number, default: 0 } // accumulated loyalty points for the user
 });
 
 // Hash password before saving
