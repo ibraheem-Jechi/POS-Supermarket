@@ -36,13 +36,16 @@ const cartsRoute = require("./routes/carts");
 app.use("/api/carts", cartsRoute);
 
 const saleRoutes = require('./routes/saleRoutes');
-app.use('/api/sales', saleRoutes); // frontend fetches all carts
+app.use('/api/sales', saleRoutes);
 
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
 const categoryRoutes = require("./routes/categoryRoutes");
 app.use("/api/categories", categoryRoutes);
+
+const reportRoutes = require("./routes/reportRoutes");
+app.use("/api/reports", reportRoutes);
 
 // ✅ NEW ALERTS ROUTE
 const alertsRoute = require("./routes/alerts");
@@ -58,7 +61,7 @@ mongoose.connect(MONGO)
   .then(() => {
     console.log('✅ MongoDB connected');
 
-    // Automatic one-time patch: populate `categoryName` from `name` for existing categories
+    // Optional: auto-fix categoryName field if missing
     try {
       const Category = require('./models/categoryModel');
       Category.updateMany(

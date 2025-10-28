@@ -14,15 +14,16 @@ import axios from "axios";
 function Sidebar({ user, setPage, setUser, collapsed }) {
   const [alertCount, setAlertCount] = useState(0);
 
+  // === Fetch alert count from backend ===
   const fetchAlertsCount = async () => {
     try {
-      // Fetch alerts list and count them. If you later add a /alerts/count endpoint,
-      // change this to axios.get('/api/products/alerts/count') and read res.data.count.
-      const res = await axios.get("http://localhost:5000/api/products/alerts");
-      if (Array.isArray(res.data)) {
-        setAlertCount(res.data.length);
-      } else if (res.data && typeof res.data.count === "number") {
+      // ✅ Fixed URL to match your actual route
+      const res = await axios.get("http://localhost:5000/api/alerts");
+
+      if (res.data && typeof res.data.count === "number") {
         setAlertCount(res.data.count);
+      } else if (Array.isArray(res.data)) {
+        setAlertCount(res.data.length);
       } else {
         setAlertCount(0);
       }
@@ -32,62 +33,87 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
     }
   };
 
+  // === Initial load + periodic refresh ===
   useEffect(() => {
-    // initial fetch
     fetchAlertsCount();
-
-    // poll every 30s
-    const id = setInterval(fetchAlertsCount, 30000);
+    const id = setInterval(fetchAlertsCount, 30000); // refresh every 30s
     return () => clearInterval(id);
   }, []);
 
+  // ✅ Debug log when alert count updates
+  useEffect(() => {
+    console.log("Alert count updated:", alertCount);
+  }, [alertCount]);
+
+  // === Sidebar UI ===
   return (
     <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
-      <p style={{ fontWeight: 600 }}>
-        👋 Hello, {user.username} <br />
-        <small>({user.role})</small>
-      </p>
+      {/* === User Info === */}
+      <div className="sidebar-header">
+        <p style={{ fontWeight: 600 }}>
+          👋 Hello, {user.username}
+          <br />
+          <small>({user.role})</small>
+        </p>
+      </div>
 
-      <button className="nav-button" onClick={() => setPage('pos')}>
-        <FaCashRegister /> <span>POS</span>
+      {/* === Navigation Buttons === */}
+      <button className="nav-button" onClick={() => setPage("pos")}>
+        <FaCashRegister />
+        <span>POS</span>
       </button>
 
-      <button className="nav-button" onClick={() => setPage('products')}>
-        <FaBoxOpen /> <span>Products</span>
+      <button className="nav-button" onClick={() => setPage("products")}>
+        <FaBoxOpen />
+        <span>Products</span>
       </button>
 
-      {user.role === 'admin' && (
+      {user.role === "admin" && (
         <>
-          <button className="nav-button" onClick={() => setPage('dashboard')}>
-            <FaChartLine /> <span>Dashboard</span>
+          <button className="nav-button" onClick={() => setPage("dashboard")}>
+            <FaChartLine />
+            <span>Dashboard</span>
           </button>
-          <button className="nav-button" onClick={() => setPage('category')}>
-            <FaTags /> <span>Categories</span>
+
+          <button className="nav-button" onClick={() => setPage("category")}>
+            <FaTags />
+            <span>Categories</span>
           </button>
         </>
       )}
 
-      <button className="nav-button" onClick={() => setPage('salesHistory')}>
-        <FaHistory /> <span>Sales History</span>
+      <button className="nav-button" onClick={() => setPage("salesHistory")}>
+        <FaHistory />
+        <span>Sales History</span>
       </button>
 
-      {/* Alerts button - visible for all (you can restrict to admin if needed) */}
-      <button className="nav-button" onClick={() => setPage('alerts')}>
-        <FaBell /> <span>Alerts</span>
+      <button className="nav-button" onClick={() => setPage("dailyReport")}>
+        <FaChartLine />
+        <span>Daily Report</span>
+      </button>
+
+      {/* === Alerts Button (with badge) === */}
+      <button className="nav-button" onClick={() => setPage("alerts")}>
+        <FaBell />
+        <span>Alerts</span>
         {alertCount > 0 && (
-          <span className="badge" aria-label={`${alertCount} alerts`}>{alertCount}</span>
+          <span className="badge" aria-label={`${alertCount} alerts`}>
+            {alertCount}
+          </span>
         )}
       </button>
 
+      {/* === Logout === */}
       <button
         className="logout-btn"
         onClick={() => {
           setUser(null);
-          setPage('');
+          setPage("");
           localStorage.clear();
         }}
       >
-        <FaSignOutAlt /> Logout
+        <FaSignOutAlt />
+        <span>Logout</span>
       </button>
     </div>
   );

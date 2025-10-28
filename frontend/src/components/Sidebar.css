@@ -66,45 +66,47 @@
 
 /* Sidebar nav buttons */
 .sidebar .nav-button {
+  position: relative; /* ensure the badge positions inside button */
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  background: rgba(255,255,255,0.05);
+  background: transparent;
   border: none;
   color: inherit;
   text-align: left;
   cursor: pointer;
   font-size: 14px;
-  border-radius: 8px;
-  position: relative;
-  transition: background 0.15s ease, transform 0.1s ease;
+  border-radius: 6px;
+  transition: background 0.12s;
+  overflow: visible; /* important - badge can overflow button area */
 }
 
 .sidebar .nav-button:hover {
   background: rgba(255,255,255,0.2);
-  transform: translateX(4px);
 }
 
-/* Badge */
+/* Badge styling */
 .sidebar .badge {
   position: absolute;
-  right: 12px;
-  top: 10px;
-  min-width: 22px;
-  height: 22px;
+  right: 14px;
+  top: 8px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 6px;
-  background: #ff3d00; /* stronger orange-red */
-  color: #fff;
+  background: #ef4444;
+  color: white;
   font-size: 12px;
   font-weight: 700;
   border-radius: 999px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  z-index: 2;
 }
+
 
 /* Logout button pinned to bottom */
 .sidebar .logout-btn {

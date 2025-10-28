@@ -7,6 +7,7 @@ import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
 import AlertsPage from "./pages/AlertsPage"; // ✅ NEW IMPORT
+import DailyReport from "./pages/DailyReport"; // ✅ NEW IMPORT
 import { FaBars } from "react-icons/fa";
 
 function App() {
@@ -100,7 +101,6 @@ return (
     </header>
 
     <div style={{ display: "flex", flex: 1 }}>
-      {/* Sidebar */}
       <Sidebar
         user={user}
         setPage={setPage}
@@ -108,17 +108,17 @@ return (
         collapsed={collapsed}
       />
 
-      {/* Main Content */}
       <div
         style={{
           flex: 1,
-          padding: "25px",
+          padding: "20px",
+          background: "rgba(255, 255, 255, 0.3)",
+          borderRadius: "12px",
           margin: "20px",
-          borderRadius: "14px",
-          background: "rgba(255,255,255,0.85)",
-          boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
           backdropFilter: "blur(10px)",
           transition: "margin-left 0.3s ease",
+          marginLeft: collapsed ? "0px" : "0px",
         }}
       >
         {page === "pos" && <POSPage user={user} />}
@@ -127,6 +127,7 @@ return (
         {page === "salesHistory" && <SalesHistory user={user} />}
         {page === "category" && <CategoryPage />}
         {page === "alerts" && <AlertsPage />}
+        {page === "dailyReport" && <DailyReport user={user} />}
       </div>
     </div>
   </div>
