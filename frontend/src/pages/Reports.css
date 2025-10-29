@@ -1,0 +1,26 @@
+.reports-container {
+  padding: 20px;
+  background: #f9fafc;
+  border-radius: 8px;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.tab {
+  background: #ecf0f1;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tab.active {
+  background: #3498db;
+  color: #fff;
+}

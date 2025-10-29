@@ -13,6 +13,12 @@ export default function POSPage({ user }) {
   const [barcode, setBarcode] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState(null);
 
+  // ✅ shift state
+  const [activeShift, setActiveShift] = useState(() => {
+    const cached = localStorage.getItem("activeShift");
+    return cached ? JSON.parse(cached) : null;
+  });
+
   // Fetch products
   useEffect(() => {
     setLoading(true);
@@ -22,6 +28,24 @@ export default function POSPage({ user }) {
       .catch(() => setErr("Failed to load products"))
       .finally(() => setLoading(false));
   }, []);
+
+  // Load current active shift (if any) from backend on mount
+  useEffect(() => {
+    const cashier = user?.username;
+    if (!cashier) return;
+    axios
+      .get(`http://localhost:5000/api/shifts/active?cashier=${encodeURIComponent(cashier)}`)
+      .then((res) => {
+        if (res.data) {
+          setActiveShift(res.data);
+          localStorage.setItem("activeShift", JSON.stringify(res.data));
+        } else {
+          setActiveShift(null);
+          localStorage.removeItem("activeShift");
+        }
+      })
+      .catch(() => {});
+  }, [user]);
 
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(products.map((p) => p.productCategory)))],
@@ -40,7 +64,7 @@ export default function POSPage({ user }) {
     });
   }, [products, query, category]);
 
-  // Cart functions
+  // Cart helpers
   const addToCart = (p) => {
     setCart((prev) => {
       const existing = prev[p._id];
@@ -86,61 +110,90 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
+  // ✅ Start shift
+  const startShift = async () => {
+    try {
+      const res = await axios.post("http://localhost:5000/api/shifts/start", {
+        cashier: user?.username,
+      });
+      setActiveShift(res.data);
+      localStorage.setItem("activeShift", JSON.stringify(res.data));
+    } catch (e) {
+      alert("❌ Could not start shift");
+    }
+  };
+
+  // ✅ End shift
+  const endShift = async () => {
+    try {
+      const res = await axios.post("http://localhost:5000/api/shifts/end", {
+        cashier: user?.username,
+      });
+      setActiveShift(null);
+      localStorage.removeItem("activeShift");
+      alert(`Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
+    } catch (e) {
+      alert("❌ Could not end shift");
+    }
+  };
+
   // 🟢 Checkout
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
 
-    try {
-     const saleData = {
-  lines: lines.map(i => ({
-    productId: i.productId,  // <--- add this
-    name: i.name,
-    price: i.price,
-    qty: i.qty
-  })),
-  subtotal,
-  tax,
-  total
-};
+    // Optional guard: require an active shift
+    if (!activeShift) {
+      const proceed = window.confirm(
+        "No active shift. Start a shift before selling?\n\nPress OK to start one now."
+      );
+      if (proceed) {
+        await startShift();
+      } else {
+        return;
+      }
+    }
 
-      await axios.post("http://localhost:5000/api/sales", saleData);
-      alert("✅ Payment complete! Sale recorded.");
+    try {
       const cartData = {
-        lines,
+        lines: lines.map((i) => {
+          const product = products.find((p) => p._id === i.productId);
+          return {
+            productId: i.productId,
+            name: i.name,
+            price: i.price,
+            qty: i.qty,
+            productCategory: product ? product.productCategory : "Uncategorized",
+          };
+        }),
         subtotal,
         tax,
         total,
         cashier: user?.username || "unknown",
+        // ✅ link to shift
+        shiftId: activeShift?._id || null,
       };
 
-      // 1) Save cart/invoice
+      // Save invoice
       const res = await axios.post("http://localhost:5000/api/carts", cartData);
 
-      // 2) Update stock quantities
+      // Update stock
       const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-        items: lines.map((i) => ({
-          productId: i.productId,
-          qty: i.qty,
-        })),
+        items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
       });
 
-      // ✅ Show errors (if stock not enough → cancel sale)
-      if (stockRes.data.errors && stockRes.data.errors.length > 0) {
+      if (stockRes.data.errors?.length) {
         alert(stockRes.data.errors.join("\n"));
-        return; // ⛔ Stop here → don’t complete sale
+        return;
       }
-
-      // ✅ Show warnings (low stock or out of stock)
-      if (stockRes.data.warnings && stockRes.data.warnings.length > 0) {
+      if (stockRes.data.warnings?.length) {
         alert(stockRes.data.warnings.join("\n"));
       }
 
-      // 3) Show success with invoice number
-      if (res.data && res.data.invoiceNumber) {
+      if (res.data?.invoiceNumber) {
         setInvoiceNumber(res.data.invoiceNumber);
         alert(`✅ Payment complete! Invoice #${res.data.invoiceNumber}`);
       } else {
-        alert("✅ Payment complete! (no invoice number returned)");
+        alert("✅ Payment complete!");
       }
 
       setCart({});
@@ -160,6 +213,37 @@ export default function POSPage({ user }) {
 
   return (
     <div className="container-fluid bg-light min-vh-100 p-4">
+      {/* ✅ Shift controls */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-success"
+            onClick={startShift}
+            disabled={!!activeShift}
+            title={activeShift ? "Shift already active" : "Start your shift"}
+          >
+            ▶ Start Shift
+          </button>
+          <button
+            className="btn btn-danger"
+            onClick={endShift}
+            disabled={!activeShift}
+            title={!activeShift ? "No active shift" : "End your shift"}
+          >
+            ■ End Shift
+          </button>
+        </div>
+
+        {activeShift ? (
+          <div className="alert alert-primary py-1 px-2 mb-0">
+            <strong>Active Shift</strong> — {user?.username} &middot; Started:{" "}
+            {new Date(activeShift.startTime).toLocaleString()}
+          </div>
+        ) : (
+          <div className="text-muted">No active shift</div>
+        )}
+      </div>
+
       <div className="row">
         {/* Products Section */}
         <div className="col-md-8 mb-4">
@@ -171,7 +255,6 @@ export default function POSPage({ user }) {
               className="form-control mb-3"
             />
 
-            {/* Category Chips */}
             <div className="mb-3 d-flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
@@ -186,7 +269,6 @@ export default function POSPage({ user }) {
               ))}
             </div>
 
-            {/* Barcode Input */}
             <div className="mb-3">
               <input
                 value={barcode}
@@ -197,7 +279,6 @@ export default function POSPage({ user }) {
               />
             </div>
 
-            {/* Products Grid */}
             {loading ? (
               <p>Loading…</p>
             ) : err ? (
@@ -228,7 +309,14 @@ export default function POSPage({ user }) {
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm p-3 sticky-top">
             <h5 className="mb-3">Cart</h5>
-            {lines.length === 0 ? (
+
+            {invoiceNumber && (
+              <div className="alert alert-info p-2 mb-3">
+                <strong>Invoice #:</strong> {invoiceNumber}
+              </div>
+            )}
+
+            {!lines.length ? (
               <div className="text-muted">No items yet</div>
             ) : (
               <ul className="list-group mb-3">
@@ -270,7 +358,6 @@ export default function POSPage({ user }) {
               </ul>
             )}
 
-            {/* Totals */}
             <div className="mb-3">
               <div className="d-flex justify-content-between">
                 <span>Subtotal</span>
@@ -286,7 +373,6 @@ export default function POSPage({ user }) {
               </div>
             </div>
 
-            {/* Checkout */}
             <button onClick={completeSale} className="btn btn-primary w-100">
               Complete Sale
             </button>

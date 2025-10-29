@@ -15,7 +15,10 @@ const cartSchema = new mongoose.Schema({
   tax: { type: Number, required: true, default: 0 },
   total: { type: Number, required: true, default: 0 },
   cashier: { type: String }, // اسم الكاشير (من POSPage)
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  
+shiftId: { type: mongoose.Schema.Types.ObjectId, ref: "Shift", default: null }
+
 });
 cartSchema.index({ createdAt: 1 });
 

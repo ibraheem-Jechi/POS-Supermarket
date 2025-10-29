@@ -73,10 +73,18 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
       <button className="nav-button" onClick={() => setPage('salesHistory')}>
         <FaHistory /> <span>Sales History</span>
       </button>
+
+      {/* Sidebar.js */}
+<button className="nav-button" onClick={() => setPage('dailyReading')}>
+  📖Main Reading
+</button>
+
       
-      <button className="nav-button" onClick={() => setPage('dailyReport')}>
-      <FaChartLine /> <span>Daily Report</span>
-    </button>
+      <button className="nav-button" onClick={() => setPage('reports')}>
+  📑 Reports
+</button>
+
+
       {/* Alerts button - visible for all (you can restrict to admin if needed) */}
       <button className="nav-button" onClick={() => setPage('alerts')}>
         <FaBell /> <span>Alerts</span>

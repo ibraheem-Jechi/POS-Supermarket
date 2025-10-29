@@ -8,6 +8,11 @@ import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
 import AlertsPage from "./pages/AlertsPage"; // ✅ NEW IMPORT
 import DailyReport from "./pages/DailyReport"; // ✅ NEW IMPORT
+import MonthlyReport from "./pages/MonthlyReport";
+import YearlyReport from "./pages/YearlyReport";
+import Reports from "./pages/Reports";
+
+
 import { FaBars } from "react-icons/fa";
 
 function App() {
@@ -110,6 +115,10 @@ function App() {
           {page === "category" && <CategoryPage />}
           {page === "alerts" && <AlertsPage />} {/* ✅ NEW ALERTS PAGE */}
           {page === "dailyReport" && <DailyReport user={user} />} {/* ✅ NEW */}
+          {page === "monthlyReport" && <MonthlyReport user={user} />}
+          {page === "yearlyReport" && <YearlyReport user={user} />}
+          {page === "reports" && <Reports user={user} />}
+
         </div>
       </div>
     </div>

@@ -48,6 +48,10 @@ app.use("/api/categories", categoryRoutes);
 const alertsRoute = require("./routes/alerts");
 app.use("/api/alerts", alertsRoute);
 
+const shiftRoutes = require("./routes/shiftRoutes");
+app.use("/api/shifts", shiftRoutes);
+
+
 
 
 const reportRoutes = require("./routes/reportRoutes");
