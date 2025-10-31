@@ -12,6 +12,9 @@ export default function POSPage({ user }) {
   const [category, setCategory] = useState("All");
   const [barcode, setBarcode] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [lastCartData, setLastCartData] = useState(null);
 
   // Fetch products
   useEffect(() => {
@@ -85,60 +88,30 @@ export default function POSPage({ user }) {
   const taxRate = 0.11;
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
+  const grandTotal = total;
 
-  // 🟢 Checkout
+  // Complete Sale → open invoice modal
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
 
     try {
-     const saleData = {
-  lines: lines.map(i => ({
-    productId: i.productId,  // <--- add this
-    name: i.name,
-    price: i.price,
-    qty: i.qty
-  })),
-  subtotal,
-  tax,
-  total
-};
-
-      await axios.post("http://localhost:5000/api/sales", saleData);
-      alert("✅ Payment complete! Sale recorded.");
       const cartData = {
         lines,
         subtotal,
         tax,
         total,
+        grandTotal,
         cashier: user?.username || "unknown",
+        paymentMethod,
+        saleDate: new Date(),
       };
 
-      // 1) Save cart/invoice
       const res = await axios.post("http://localhost:5000/api/carts", cartData);
 
-      // 2) Update stock quantities
-      const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-        items: lines.map((i) => ({
-          productId: i.productId,
-          qty: i.qty,
-        })),
-      });
-
-      // ✅ Show errors (if stock not enough → cancel sale)
-      if (stockRes.data.errors && stockRes.data.errors.length > 0) {
-        alert(stockRes.data.errors.join("\n"));
-        return; // ⛔ Stop here → don’t complete sale
-      }
-
-      // ✅ Show warnings (low stock or out of stock)
-      if (stockRes.data.warnings && stockRes.data.warnings.length > 0) {
-        alert(stockRes.data.warnings.join("\n"));
-      }
-
-      // 3) Show success with invoice number
-      if (res.data && res.data.invoiceNumber) {
+      if (res.data?.invoiceNumber) {
         setInvoiceNumber(res.data.invoiceNumber);
-        alert(`✅ Payment complete! Invoice #${res.data.invoiceNumber}`);
+        setLastCartData({ ...cartData, invoiceNumber: res.data.invoiceNumber });
+        setShowInvoice(true); // ✅ تظهر الفاتورة مباشرة بعد Complete Sale
       } else {
         alert("✅ Payment complete! (no invoice number returned)");
       }
@@ -150,12 +123,14 @@ export default function POSPage({ user }) {
     }
   };
 
-  // --- Barcode quick add ---
-  const onBarcodeEnter = (e) => {
-    if (e.key !== "Enter") return;
-    const p = products.find((p) => (p.barcode || "") === barcode.trim());
-    if (p) addToCart(p);
-    setBarcode("");
+  // Print Invoice
+  const printInvoice = () => {
+    const content = document.getElementById("invoice-content").innerHTML;
+    const win = window.open("", "_blank");
+    win.document.write(`<html><head><title>Invoice</title></head><body>${content}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
   };
 
   return (
@@ -170,8 +145,6 @@ export default function POSPage({ user }) {
               placeholder="Search products or categories…"
               className="form-control mb-3"
             />
-
-            {/* Category Chips */}
             <div className="mb-3 d-flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
@@ -185,19 +158,21 @@ export default function POSPage({ user }) {
                 </button>
               ))}
             </div>
-
-            {/* Barcode Input */}
             <div className="mb-3">
               <input
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                onKeyDown={onBarcodeEnter}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const p = products.find((p) => (p.barcode || "") === barcode.trim());
+                    if (p) addToCart(p);
+                    setBarcode("");
+                  }
+                }}
                 placeholder="Scan/enter barcode and press Enter"
                 className="form-control"
               />
             </div>
-
-            {/* Products Grid */}
             {loading ? (
               <p>Loading…</p>
             ) : err ? (
@@ -269,8 +244,6 @@ export default function POSPage({ user }) {
                 ))}
               </ul>
             )}
-
-            {/* Totals */}
             <div className="mb-3">
               <div className="d-flex justify-content-between">
                 <span>Subtotal</span>
@@ -284,15 +257,72 @@ export default function POSPage({ user }) {
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
+              <div className="mt-2">
+                <label className="form-label">Payment Method:</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="form-select"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="mobile">Mobile Pay</option>
+                </select>
+              </div>
             </div>
-
-            {/* Checkout */}
             <button onClick={completeSale} className="btn btn-primary w-100">
               Complete Sale
             </button>
           </div>
         </div>
       </div>
+
+      {/* Invoice Modal (فقط Print Invoice و Close) */}
+      {showInvoice && lastCartData && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex justify-content-center align-items-start"
+          style={{ paddingTop: "40px", zIndex: 9999 }}
+        >
+          <div
+            className="bg-white p-4 rounded shadow"
+            style={{ width: "400px", maxHeight: "90%", overflowY: "auto" }}
+          >
+            <h5 className="mb-3">Invoice #{lastCartData.invoiceNumber}</h5>
+            <div id="invoice-content">
+              <div><strong>Cashier:</strong> {lastCartData.cashier}</div>
+              <div><strong>Payment:</strong> {lastCartData.paymentMethod}</div>
+              <div><strong>Date:</strong> {new Date(lastCartData.saleDate).toLocaleString()}</div>
+              <hr />
+              <ul className="list-group mb-2">
+                {lastCartData.lines.map((i, idx) => (
+                  <li key={idx} className="list-group-item d-flex justify-content-between">
+                    <span>{i.name} x{i.qty}</span>
+                    <span>${(i.price * i.qty).toFixed(2)}</span>
+                  </li>
+                ))}
+              </ul>
+              <hr />
+              <div className="d-flex justify-content-between">
+                <span>Subtotal</span>
+                <span>${lastCartData.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span>Tax</span>
+                <span>${lastCartData.tax.toFixed(2)}</span>
+              </div>
+              <div className="d-flex justify-content-between fw-bold">
+                <span>Grand Total</span>
+                <span>${lastCartData.grandTotal.toFixed(2)}</span>
+              </div>
+
+              <div className="mt-3 d-flex justify-content-between">
+                <button className="btn btn-success" onClick={printInvoice}>Print Invoice</button>
+                <button className="btn btn-secondary" onClick={() => setShowInvoice(false)}>Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

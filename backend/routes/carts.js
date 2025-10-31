@@ -1,6 +1,7 @@
+// backend/routes/cartRoutes.js
 const express = require("express");
 const router = express.Router();
-const Cart = require("../models/cart"); // ✅ استعمل cart.js الموحد
+const Cart = require("../models/cart"); // ✅ صححت اسم الملف ليكون cart.js الصغير
 
 // POST /api/carts
 router.post("/", async (req, res) => {
@@ -13,9 +14,27 @@ router.post("/", async (req, res) => {
       ? lastCart.invoiceNumber + 1 
       : 1;
 
+    const {
+      lines = [],
+      subtotal = 0,
+      tax = 0,
+      total = 0,
+      grandTotal = total + tax,         // ✅ افتراضياً لو ما أرسل grandTotal
+      cashier = "unknown",
+      paymentMethod = "cash",           // ✅ جديد
+      saleDate = new Date()             // ✅ جديد
+    } = req.body;
+
     const cart = new Cart({
-      ...req.body,
-      invoiceNumber: nextInvoice
+      invoiceNumber: nextInvoice,
+      lines,
+      subtotal,
+      tax,
+      total,
+      grandTotal,
+      cashier,
+      paymentMethod,
+      saleDate
     });
 
     const saved = await cart.save();
