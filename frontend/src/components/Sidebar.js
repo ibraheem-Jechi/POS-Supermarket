@@ -8,18 +8,20 @@ import {
   FaHistory,
   FaSignOutAlt,
   FaBell,
+  FaChevronDown,
+  FaChevronUp,
+  FaCog,
 } from "react-icons/fa";
 import axios from "axios";
 
 function Sidebar({ user, setPage, setUser, collapsed }) {
   const [alertCount, setAlertCount] = useState(0);
+  const [adminOpen, setAdminOpen] = useState(false); // ✅ Admin section toggle
 
   // === Fetch alert count from backend ===
   const fetchAlertsCount = async () => {
     try {
-      // ✅ Fixed URL to match your actual route
       const res = await axios.get("http://localhost:5000/api/alerts");
-
       if (res.data && typeof res.data.count === "number") {
         setAlertCount(res.data.count);
       } else if (Array.isArray(res.data)) {
@@ -36,11 +38,10 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
   // === Initial load + periodic refresh ===
   useEffect(() => {
     fetchAlertsCount();
-    const id = setInterval(fetchAlertsCount, 30000); // refresh every 30s
+    const id = setInterval(fetchAlertsCount, 30000);
     return () => clearInterval(id);
   }, []);
 
-  // ✅ Debug log when alert count updates
   useEffect(() => {
     console.log("Alert count updated:", alertCount);
   }, [alertCount]);
@@ -72,13 +73,46 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         <>
           <button className="nav-button" onClick={() => setPage("dashboard")}>
             <FaChartLine />
-            <span>Dashboard</span>
+            <span>User Management</span>
           </button>
 
           <button className="nav-button" onClick={() => setPage("category")}>
             <FaTags />
             <span>Categories</span>
           </button>
+
+          {/* === Collapsible Admin Section === */}
+          <div className="admin-section">
+            <button
+              className="nav-button"
+              onClick={() => setAdminOpen(!adminOpen)}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <FaCog />
+                <span>Admin</span>
+              </div>
+              {adminOpen ? <FaChevronUp /> : <FaChevronDown />}
+            </button>
+
+            {adminOpen && (
+              <div className="admin-submenu" style={{ marginLeft: "25px" }}>
+                <button className="nav-button" onClick={() => setPage("tops")}>
+                  <span>• TOPS</span>
+                </button>
+                <button className="nav-button" onClick={() => setPage("expenses")}>
+                  <span>• EXPENSES</span>
+                </button>
+                <button className="nav-button" onClick={() => setPage("wins")}>
+                  <span>• WINS</span>
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
 
