@@ -67,6 +67,10 @@ app.use('/api/reports', reportRoutes);
 const alertsRoute = require('./routes/alerts');
 app.use('/api/alerts', alertsRoute);
 
+// ✅ New: Stats route (for top products, etc.)
+const statsRoutes = require('./routes/stats');
+app.use('/api/stats', statsRoutes);
+
 // --------------------------
 // Optional: Patch categoryName field on startup
 // --------------------------

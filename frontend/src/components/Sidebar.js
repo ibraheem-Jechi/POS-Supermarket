@@ -69,7 +69,30 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         <span>Products</span>
       </button>
 
-      {user.role === "admin" && (
+     
+
+      <button className="nav-button" onClick={() => setPage("salesHistory")}>
+        <FaHistory />
+        <span>Sales History</span>
+      </button>
+
+      <button className="nav-button" onClick={() => setPage("dailyReport")}>
+        <FaChartLine />
+        <span>Daily Report</span>
+      </button>
+
+      {/* === Alerts Button (with badge) === */}
+      <button className="nav-button" onClick={() => setPage("alerts")}>
+        <FaBell />
+        <span>Alerts</span>
+        {alertCount > 0 && (
+          <span className="badge" aria-label={`${alertCount} alerts`}>
+            {alertCount}
+          </span>
+        )}
+      </button>
+
+         {user.role === "admin" && (
         <>
           <button className="nav-button" onClick={() => setPage("dashboard")}>
             <FaChartLine />
@@ -102,40 +125,19 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
             {adminOpen && (
               <div className="admin-submenu" style={{ marginLeft: "25px" }}>
                 <button className="nav-button" onClick={() => setPage("tops")}>
-                  <span>• TOPS</span>
+                  <span>TOPS</span>
                 </button>
                 <button className="nav-button" onClick={() => setPage("expenses")}>
-                  <span>• EXPENSES</span>
+                  <span>EXPENSES</span>
                 </button>
                 <button className="nav-button" onClick={() => setPage("wins")}>
-                  <span>• WINS</span>
+                  <span>WINS</span>
                 </button>
               </div>
             )}
           </div>
         </>
       )}
-
-      <button className="nav-button" onClick={() => setPage("salesHistory")}>
-        <FaHistory />
-        <span>Sales History</span>
-      </button>
-
-      <button className="nav-button" onClick={() => setPage("dailyReport")}>
-        <FaChartLine />
-        <span>Daily Report</span>
-      </button>
-
-      {/* === Alerts Button (with badge) === */}
-      <button className="nav-button" onClick={() => setPage("alerts")}>
-        <FaBell />
-        <span>Alerts</span>
-        {alertCount > 0 && (
-          <span className="badge" aria-label={`${alertCount} alerts`}>
-            {alertCount}
-          </span>
-        )}
-      </button>
 
       {/* === Logout === */}
       <button
