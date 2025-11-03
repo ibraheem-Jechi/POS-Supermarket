@@ -1,5 +1,7 @@
+// backend/models/cart.js
 const mongoose = require('mongoose');
 
+// ✅ تفاصيل كل منتج بالخط
 const lineItemSchema = new mongoose.Schema({
   productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: false },
   name: { type: String, required: true },
@@ -8,6 +10,7 @@ const lineItemSchema = new mongoose.Schema({
    productCategory: { type: String }
 });
 
+// ✅ نموذج الفاتورة / السلة
 const cartSchema = new mongoose.Schema({
   invoiceNumber: { type: Number, required: true, unique: true }, // رقم الفاتورة
   lines: { type: [lineItemSchema], default: [] },
@@ -17,9 +20,14 @@ const cartSchema = new mongoose.Schema({
   cashier: { type: String }, // اسم الكاشير (من POSPage)
   createdAt: { type: Date, default: Date.now },
   
-shiftId: { type: mongoose.Schema.Types.ObjectId, ref: "Shift", default: null }
+shiftId: { type: mongoose.Schema.Types.ObjectId, ref: "Shift", default: null },
 
+  // loyalty points awarded for the sale
+  loyaltyPoints: { type: Number, default: 0 },
+  
+   paymentMethod: { type: String, default: "cash" },  
 });
-cartSchema.index({ createdAt: 1 });
+
+cartSchema.index({ createdAt: 1 }); // لتحسين البحث حسب التاريخ
 
 module.exports = mongoose.model('Cart', cartSchema);

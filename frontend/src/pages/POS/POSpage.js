@@ -12,24 +12,29 @@ export default function POSPage({ user }) {
   const [category, setCategory] = useState("All");
   const [barcode, setBarcode] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState(null);
+  const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
 
-  // ✅ shift state
+  // ✅ Shift state
   const [activeShift, setActiveShift] = useState(() => {
     const cached = localStorage.getItem("activeShift");
     return cached ? JSON.parse(cached) : null;
   });
 
-  // Fetch products
+  // ✅ Fetch products
   useEffect(() => {
     setLoading(true);
     api
       .get("/products")
       .then((res) => setProducts(res.data))
-      .catch(() => setErr("Failed to load products"))
+      .catch((e) => {
+        console.error("Failed to load products:", e);
+        const msg = e.response?.data?.message || e.message || "Failed to load products";
+        setErr(msg);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  // Load current active shift (if any) from backend on mount
+  // ✅ Load current active shift on mount
   useEffect(() => {
     const cashier = user?.username;
     if (!cashier) return;
@@ -47,6 +52,7 @@ export default function POSPage({ user }) {
       .catch(() => {});
   }, [user]);
 
+  // ✅ Category filtering
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(products.map((p) => p.productCategory)))],
     [products]
@@ -64,8 +70,8 @@ export default function POSPage({ user }) {
     });
   }, [products, query, category]);
 
-  // Cart helpers
-  const addToCart = (p) => {
+  // ✅ Cart helpers
+  const addToCart = (p) =>
     setCart((prev) => {
       const existing = prev[p._id];
       const qty = existing ? existing.qty + 1 : 1;
@@ -74,12 +80,11 @@ export default function POSPage({ user }) {
         [p._id]: {
           productId: p._id,
           name: p.productName,
-          price: p.productPrice,
+          price: Number(p.productPrice) || 0,
           qty,
         },
       };
     });
-  };
 
   const decQty = (id) =>
     setCart((prev) => {
@@ -110,69 +115,62 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
-  // ✅ Start shift (with confirmation)
-const startShift = async () => {
-  if (activeShift) {
-    alert("⚠️ You already have an active shift.");
-    return;
-  }
+  // ✅ Start Shift
+  const startShift = async () => {
+    if (activeShift) {
+      alert("⚠️ You already have an active shift.");
+      return;
+    }
 
-  const confirmStart = window.confirm(
-    `🟢 Start your shift as ${user.username}?`
-  );
-  if (!confirmStart) return;
+    const confirmStart = window.confirm(`🟢 Start your shift as ${user.username}?`);
+    if (!confirmStart) return;
 
-  try {
-    const res = await axios.post("http://localhost:5000/api/shifts/start", {
-      cashier: user?.username,
-    });
-    setActiveShift(res.data);
-    localStorage.setItem("activeShift", JSON.stringify(res.data));
-    alert(`✅ Shift started at ${new Date(res.data.startTime).toLocaleTimeString()}`);
-  } catch (e) {
-    alert("❌ Could not start shift");
-  }
-};
+    try {
+      const res = await axios.post("http://localhost:5000/api/shifts/start", {
+        cashier: user?.username,
+      });
+      setActiveShift(res.data);
+      localStorage.setItem("activeShift", JSON.stringify(res.data));
+      alert(`✅ Shift started at ${new Date(res.data.startTime).toLocaleTimeString()}`);
+    } catch {
+      alert("❌ Could not start shift");
+    }
+  };
 
-// ✅ End shift (with confirmation)
-const endShift = async () => {
-  if (!activeShift) {
-    alert("⚠️ You have no active shift to end.");
-    return;
-  }
+  // ✅ End Shift
+  const endShift = async () => {
+    if (!activeShift) {
+      alert("⚠️ You have no active shift to end.");
+      return;
+    }
 
-  const confirmEnd = window.confirm(
-    `🔴 Are you sure you want to end your shift?\n\nAll future sales will be locked until a new shift is started.`
-  );
-  if (!confirmEnd) return;
+    const confirmEnd = window.confirm(
+      `🔴 End shift for ${user.username}?\nAll future sales will be locked until a new shift starts.`
+    );
+    if (!confirmEnd) return;
 
-  try {
-    const res = await axios.post("http://localhost:5000/api/shifts/end", {
-      cashier: user?.username,
-    });
-    setActiveShift(null);
-    localStorage.removeItem("activeShift");
-    alert(`✅ Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
-  } catch (e) {
-    alert("❌ Could not end shift");
-  }
-};
+    try {
+      const res = await axios.post("http://localhost:5000/api/shifts/end", {
+        cashier: user?.username,
+      });
+      setActiveShift(null);
+      localStorage.removeItem("activeShift");
+      alert(`✅ Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
+    } catch {
+      alert("❌ Could not end shift");
+    }
+  };
 
-
-  // 🟢 Checkout
+  // ✅ Checkout
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
 
-    // Optional guard: require an active shift
     if (!activeShift) {
       const proceed = window.confirm(
-        "No active shift. Start a shift before selling?\n\nPress OK to start one now."
+        "No active shift. Start one before selling?\n\nPress OK to start now."
       );
-      if (proceed) {
-        await startShift();
-      } else {
-        return;
-      }
+      if (proceed) await startShift();
+      else return;
     }
 
     try {
@@ -191,46 +189,51 @@ const endShift = async () => {
         tax,
         total,
         cashier: user?.username || "unknown",
-        // ✅ link to shift
         shiftId: activeShift?._id || null,
       };
 
       // Save invoice
-      const res = await axios.post("http://localhost:5000/api/carts", cartData);
+      const cartRes = await axios.post("http://localhost:5000/api/carts", cartData);
 
-      // Update stock
+      // Save sale
+      const saleRes = await axios.post("http://localhost:5000/api/sales", {
+        ...cartData,
+        cartId: cartRes.data?._id || null,
+      });
+
+      // Decrease stock
       const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
         items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
       });
 
-      if (stockRes.data.errors?.length) {
-        alert(stockRes.data.errors.join("\n"));
-        return;
-      }
-      if (stockRes.data.warnings?.length) {
-        alert(stockRes.data.warnings.join("\n"));
-      }
+      if (stockRes.data.errors?.length) return alert(stockRes.data.errors.join("\n"));
+      if (stockRes.data.warnings?.length) alert(stockRes.data.warnings.join("\n"));
 
-      if (res.data?.invoiceNumber) {
-        setInvoiceNumber(res.data.invoiceNumber);
-        alert(`✅ Payment complete! Invoice #${res.data.invoiceNumber}`);
+      if (saleRes.data?.invoiceNumber) {
+        setInvoiceNumber(saleRes.data.invoiceNumber);
+        setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
+        alert(
+          `✅ Payment complete! Invoice #${saleRes.data.invoiceNumber}\n🎁 Loyalty Points: ${
+            saleRes.data.loyaltyPoints || 0
+          }`
+        );
       } else {
         alert("✅ Payment complete!");
       }
 
       setCart({});
     } catch (err) {
-      console.error("❌ Failed to save cart:", err.response?.data || err.message);
-      alert("❌ Failed to save cart");
+      console.error("❌ Failed to complete sale:", err.response?.data || err.message);
+      alert("❌ Sale failed");
     }
   };
 
-  // --- Barcode quick add ---
   const onBarcodeEnter = (e) => {
-    if (e.key !== "Enter") return;
-    const p = products.find((p) => (p.barcode || "") === barcode.trim());
-    if (p) addToCart(p);
-    setBarcode("");
+    if (e.key === "Enter") {
+      const p = products.find((p) => (p.barcode || "") === barcode.trim());
+      if (p) addToCart(p);
+      setBarcode("");
+    }
   };
 
   return (
@@ -242,7 +245,6 @@ const endShift = async () => {
             className="btn btn-success"
             onClick={startShift}
             disabled={!!activeShift}
-            title={activeShift ? "Shift already active" : "Start your shift"}
           >
             ▶ Start Shift
           </button>
@@ -250,7 +252,6 @@ const endShift = async () => {
             className="btn btn-danger"
             onClick={endShift}
             disabled={!activeShift}
-            title={!activeShift ? "No active shift" : "End your shift"}
           >
             ■ End Shift
           </button>
@@ -258,8 +259,8 @@ const endShift = async () => {
 
         {activeShift ? (
           <div className="alert alert-primary py-1 px-2 mb-0">
-            <strong>Active Shift</strong> — {user?.username} &middot; Started:{" "}
-            {new Date(activeShift.startTime).toLocaleString()}
+            <strong>Active Shift:</strong> {user?.username} &middot;{" "}
+            {new Date(activeShift.startTime).toLocaleTimeString()}
           </div>
         ) : (
           <div className="text-muted">No active shift</div>
@@ -267,7 +268,7 @@ const endShift = async () => {
       </div>
 
       <div className="row">
-        {/* Products Section */}
+        {/* Products */}
         <div className="col-md-8 mb-4">
           <div className="card shadow-sm p-3 h-100">
             <input
@@ -291,15 +292,13 @@ const endShift = async () => {
               ))}
             </div>
 
-            <div className="mb-3">
-              <input
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                onKeyDown={onBarcodeEnter}
-                placeholder="Scan/enter barcode and press Enter"
-                className="form-control"
-              />
-            </div>
+            <input
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              onKeyDown={onBarcodeEnter}
+              placeholder="Scan barcode and press Enter"
+              className="form-control mb-3"
+            />
 
             {loading ? (
               <p>Loading…</p>
@@ -311,7 +310,7 @@ const endShift = async () => {
                   <div key={p._id} className="col">
                     <button
                       onClick={() => addToCart(p)}
-                      className="card p-2 w-100 h-100 border-0 shadow-sm hover-shadow"
+                      className="card p-2 w-100 h-100 border-0 shadow-sm"
                     >
                       <div className="fw-semibold mb-2">{p.productName}</div>
                       <div className="d-flex justify-content-between align-items-center">
@@ -321,13 +320,13 @@ const endShift = async () => {
                     </button>
                   </div>
                 ))}
-                {!filtered.length && <div className="text-muted mt-2">No products</div>}
+                {!filtered.length && <div className="text-muted mt-2">No products found</div>}
               </div>
             )}
           </div>
         </div>
 
-        {/* Cart Section */}
+        {/* Cart */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm p-3 sticky-top">
             <h5 className="mb-3">Cart</h5>
@@ -365,9 +364,7 @@ const endShift = async () => {
                       >
                         +
                       </button>
-                      <span className="fw-bold ms-2">
-                        ${(i.price * i.qty).toFixed(2)}
-                      </span>
+                      <span className="fw-bold ms-2">${(i.price * i.qty).toFixed(2)}</span>
                       <button
                         onClick={() => removeItem(i.productId)}
                         className="btn btn-link text-danger p-0 ms-2"
@@ -393,6 +390,11 @@ const endShift = async () => {
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
+              {invoiceNumber && (
+                <div className="mt-2 text-success">
+                  🎁 Loyalty Points Earned: {loyaltyPointsEarned}
+                </div>
+              )}
             </div>
 
             <button onClick={completeSale} className="btn btn-primary w-100">

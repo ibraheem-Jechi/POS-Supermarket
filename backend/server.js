@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 
 const app = express();
 
@@ -13,11 +14,17 @@ const corsOptions = {
   origin: 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
+
+// Simple request logger to help debug 404s/misrouted requests
+app.use((req, res, next) => {
+  console.log(`--> ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // --------------------------
 // Health-check route
@@ -29,34 +36,86 @@ app.get('/', (req, res) => {
 // --------------------------
 // API Routes
 // --------------------------
+
+// Product Routes - use the routes file so edits and logging are applied
 const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
 
-const cartsRoute = require("./routes/carts");
-app.use("/api/carts", cartsRoute);
+// Other existing routes
+const cartsRoute = require('./routes/carts');
+app.use('/api/carts', cartsRoute);
 
 const saleRoutes = require('./routes/saleRoutes');
-app.use('/api/sales', saleRoutes); // frontend fetches all carts
+app.use('/api/sales', saleRoutes);
 
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
-const categoryRoutes = require("./routes/categoryRoutes");
-app.use("/api/categories", categoryRoutes);
+const categoryRoutes = require('./routes/categoryRoutes');
+app.use('/api/categories', categoryRoutes);
 
-// ✅ NEW ALERTS ROUTE
-const alertsRoute = require("./routes/alerts");
-app.use("/api/alerts", alertsRoute);
+const reportRoutes = require('./routes/reportRoutes');
+app.use('/api/reports', reportRoutes);
+
+const alertsRoute = require('./routes/alerts');
+app.use('/api/alerts', alertsRoute);
+
+// Debug: list registered routes (helpful to confirm product routes are mounted)
+app.get('/api/debug/routes', (req, res) => {
+  try {
+    const routes = [];
+    app._router.stack.forEach((middleware) => {
+      if (middleware.route) {
+        // routes registered directly on the app
+        routes.push({ path: middleware.route.path, methods: middleware.route.methods });
+      } else if (middleware.name === 'router' && middleware.handle && middleware.handle.stack) {
+        // router middleware
+        middleware.handle.stack.forEach((handler) => {
+          const route = handler.route;
+          if (route) routes.push({ path: route.path, methods: route.methods });
+        });
+      }
+    });
+    res.json({ routes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ NEW: Stats route (for top products etc.)
+const statsRoutes = require('./routes/stats');
+app.use('/api/stats', statsRoutes);
+
+const expenseRoutes = require('./routes/expenseRoutes');
+app.use('/api/expenses', expenseRoutes);
+
+const profitRoutes = require('./routes/profitRoutes');
+app.use('/api/profit', profitRoutes);
 
 const shiftRoutes = require("./routes/shiftRoutes");
 app.use("/api/shifts", shiftRoutes);
 
 
 
-
-const reportRoutes = require("./routes/reportRoutes");
-app.use("/api/reports", /* auth("admin"), */ reportRoutes); // يفضل تحط ميدل وير الأدمن إذا مركّبه
-
+// --------------------------
+// Optional: Patch categoryName field on startup
+// --------------------------
+const patchCategories = async () => {
+  try {
+    const Category = require('./models/categoryModel');
+    const result = await Category.updateMany(
+      { $or: [{ categoryName: { $exists: false } }, { categoryName: null }] },
+      [{ $set: { categoryName: '$name' } }]
+    );
+    if (result.modifiedCount > 0) {
+      console.log(`✅ Patched ${result.modifiedCount} category documents to set categoryName`);
+    } else {
+      console.log('✅ No category documents needed patching');
+    }
+  } catch (err) {
+    console.error('Error patching categories on startup:', err.message || err);
+  }
+};
 
 // --------------------------
 // Server & Database Setup
@@ -64,35 +123,17 @@ app.use("/api/reports", /* auth("admin"), */ reportRoutes); // يفضل تحط �
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
 
-mongoose.connect(MONGO)
-  .then(() => {
+mongoose
+  .connect(MONGO)
+  .then(async () => {
     console.log('✅ MongoDB connected');
 
-    // Automatic one-time patch: populate `categoryName` from `name` for existing categories
-    try {
-      const Category = require('./models/categoryModel');
-      Category.updateMany(
-        { $or: [{ categoryName: { $exists: false } }, { categoryName: null }] },
-        [{ $set: { categoryName: '$name' } }]
-      )
-        .then((result) => {
-          if (result.modifiedCount && result.modifiedCount > 0) {
-            console.log(`✅ Patched ${result.modifiedCount} category documents to set categoryName`);
-          } else {
-            console.log('✅ No category documents needed patching');
-          }
-        })
-        .catch((err) => {
-          console.error('Error patching categories on startup:', err.message || err);
-        });
-    } catch (e) {
-      console.error('Could not run startup patch for categories:', e.message || e);
-    }
+    // Run category patch
+    await patchCategories();
 
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
-  
