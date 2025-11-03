@@ -6,6 +6,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
+import AlertsPage from "./pages/AlertsPage";
+import DailyReport from "./pages/DailyReport";
 import { FaBars } from "react-icons/fa";
 
 function App() {
@@ -13,6 +15,7 @@ function App() {
   const [page, setPage] = useState("");
   const [collapsed, setCollapsed] = useState(false);
 
+  // ✅ Load saved data
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedPage = localStorage.getItem("page");
@@ -20,15 +23,18 @@ function App() {
     if (savedPage) setPage(savedPage.toLowerCase());
   }, []);
 
+  // ✅ Save user in storage
   useEffect(() => {
     if (user) localStorage.setItem("user", JSON.stringify(user));
     else localStorage.removeItem("user");
   }, [user]);
 
+  // ✅ Save page in storage
   useEffect(() => {
     if (page) localStorage.setItem("page", page);
   }, [page]);
 
+  // ✅ Login logic
   if (!user) {
     return (
       <LoginPage
@@ -40,6 +46,7 @@ function App() {
     );
   }
 
+  // ✅ Dashboard logic
   const DashboardPage = () => (
     <div>
       {user.role === "admin" ? (
@@ -52,6 +59,7 @@ function App() {
     </div>
   );
 
+  // ✅ Main Layout
   return (
     <div
       style={{
@@ -63,7 +71,7 @@ function App() {
         background: "#f4f6f8",
       }}
     >
-      {/* Hamburger Menu */}
+      {/* === Hamburger Menu === */}
       <FaBars
         className="hamburger"
         onClick={() => setCollapsed(!collapsed)}
@@ -82,7 +90,7 @@ function App() {
         }}
       />
 
-      {/* Header */}
+      {/* === Header === */}
       <header
         style={{
           background: "linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%)",
@@ -98,6 +106,7 @@ function App() {
         🛒 Supermarket POS
       </header>
 
+      {/* === Body === */}
       <div style={{ display: "flex", flex: 1 }}>
         <Sidebar
           user={user}
@@ -119,14 +128,14 @@ function App() {
             marginLeft: collapsed ? "0px" : "0px",
           }}
         >
-          {page === "pos" && <POSPage user={user} />}
-          {page === "products" && <ProductsPage />}
-          {page === "dashboard" && <DashboardPage />}
-          {page === "salesHistory" && <SalesHistory user={user} />}
-          {page === "category" && <CategoryPage />}
-          {/* تم تعطيل هاتين الصفحتين مؤقتًا لتجنب الخطأ */}
-          {/* {page === "alerts" && <AlertsPage />} */}
-          {/* {page === "dailyReport" && <DailyReport user={user} />} */}
+          {/* === Page Switch === */}
+          {page.toLowerCase() === "pos" && <POSPage user={user} />}
+          {page.toLowerCase() === "products" && <ProductsPage />}
+          {page.toLowerCase() === "dashboard" && <DashboardPage />}
+          {page.toLowerCase() === "saleshistory" && <SalesHistory user={user} />}
+          {page.toLowerCase() === "category" && <CategoryPage />}
+          {page.toLowerCase() === "alerts" && <AlertsPage />}
+          {page.toLowerCase() === "dailyreport" && <DailyReport user={user} />}
         </div>
       </div>
     </div>
