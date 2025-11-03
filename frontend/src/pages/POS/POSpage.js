@@ -110,32 +110,54 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
-  // ✅ Start shift
-  const startShift = async () => {
-    try {
-      const res = await axios.post("http://localhost:5000/api/shifts/start", {
-        cashier: user?.username,
-      });
-      setActiveShift(res.data);
-      localStorage.setItem("activeShift", JSON.stringify(res.data));
-    } catch (e) {
-      alert("❌ Could not start shift");
-    }
-  };
+  // ✅ Start shift (with confirmation)
+const startShift = async () => {
+  if (activeShift) {
+    alert("⚠️ You already have an active shift.");
+    return;
+  }
 
-  // ✅ End shift
-  const endShift = async () => {
-    try {
-      const res = await axios.post("http://localhost:5000/api/shifts/end", {
-        cashier: user?.username,
-      });
-      setActiveShift(null);
-      localStorage.removeItem("activeShift");
-      alert(`Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
-    } catch (e) {
-      alert("❌ Could not end shift");
-    }
-  };
+  const confirmStart = window.confirm(
+    `🟢 Start your shift as ${user.username}?`
+  );
+  if (!confirmStart) return;
+
+  try {
+    const res = await axios.post("http://localhost:5000/api/shifts/start", {
+      cashier: user?.username,
+    });
+    setActiveShift(res.data);
+    localStorage.setItem("activeShift", JSON.stringify(res.data));
+    alert(`✅ Shift started at ${new Date(res.data.startTime).toLocaleTimeString()}`);
+  } catch (e) {
+    alert("❌ Could not start shift");
+  }
+};
+
+// ✅ End shift (with confirmation)
+const endShift = async () => {
+  if (!activeShift) {
+    alert("⚠️ You have no active shift to end.");
+    return;
+  }
+
+  const confirmEnd = window.confirm(
+    `🔴 Are you sure you want to end your shift?\n\nAll future sales will be locked until a new shift is started.`
+  );
+  if (!confirmEnd) return;
+
+  try {
+    const res = await axios.post("http://localhost:5000/api/shifts/end", {
+      cashier: user?.username,
+    });
+    setActiveShift(null);
+    localStorage.removeItem("activeShift");
+    alert(`✅ Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
+  } catch (e) {
+    alert("❌ Could not end shift");
+  }
+};
+
 
   // 🟢 Checkout
   const completeSale = async () => {

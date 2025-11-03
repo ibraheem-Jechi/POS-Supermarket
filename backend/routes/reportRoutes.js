@@ -120,4 +120,113 @@ router.get("/yearly", async (req, res) => {
   }
 });
 
+// ✅ DAILY SUMMARY with per-cashier shift info
+router.get("/daily-summary", async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().substring(0, 10);
+    const cashier = req.query.cashier || null;
+    const start = new Date(date + "T00:00:00.000Z");
+    const end = new Date(date + "T23:59:59.999Z");
+
+    const match = cashier
+      ? { createdAt: { $gte: start, $lte: end }, cashier }
+      : { createdAt: { $gte: start, $lte: end } };
+
+    // All invoices (sorted)
+    const invoices = await Cart.find(match).sort({ createdAt: 1 });
+
+    // If no invoices, return empty
+    if (!invoices.length) {
+      return res.json({
+        date,
+        storeName: "Supermarket POS",
+        invoices: [],
+        totals: { subtotal: 0, tax: 0, total: 0, invoices: 0 },
+        products: [],
+        cashiers: [],
+      });
+    }
+
+    // 🔸 Group invoices by cashier manually
+    const cashierMap = {};
+    invoices.forEach((inv) => {
+      const c = inv.cashier || "Unknown";
+      if (!cashierMap[c]) {
+        cashierMap[c] = {
+          cashier: c,
+          invoices: [],
+          subtotal: 0,
+          tax: 0,
+          total: 0,
+          startTime: inv.createdAt,
+          endTime: inv.createdAt,
+        };
+      }
+
+      cashierMap[c].invoices.push(inv);
+      cashierMap[c].subtotal += inv.subtotal || 0;
+      cashierMap[c].tax += inv.tax || 0;
+      cashierMap[c].total += inv.total || 0;
+
+      if (new Date(inv.createdAt) < new Date(cashierMap[c].startTime))
+        cashierMap[c].startTime = inv.createdAt;
+      if (new Date(inv.createdAt) > new Date(cashierMap[c].endTime))
+        cashierMap[c].endTime = inv.createdAt;
+    });
+
+    const cashiers = Object.values(cashierMap).map((c) => {
+      const durationMs = new Date(c.endTime) - new Date(c.startTime);
+      const h = Math.floor(durationMs / 3600000);
+      const m = Math.floor((durationMs % 3600000) / 60000);
+      return {
+        ...c,
+        duration: `${h}h ${m}m`,
+        invoiceCount: c.invoices.length,
+      };
+    });
+
+    // 🔹 Aggregate all products (whole day)
+    const productAgg = await Cart.aggregate([
+      { $match: match },
+      { $unwind: "$lines" },
+      {
+        $group: {
+          _id: "$lines.name",
+          totalQty: { $sum: "$lines.qty" },
+          totalSales: { $sum: { $multiply: ["$lines.qty", "$lines.price"] } },
+        },
+      },
+      { $sort: { totalSales: -1 } },
+    ]);
+
+    // 🔹 Totals for the day
+    const totals = cashiers.reduce(
+      (acc, c) => {
+        acc.subtotal += c.subtotal;
+        acc.tax += c.tax;
+        acc.total += c.total;
+        acc.invoices += c.invoiceCount;
+        return acc;
+      },
+      { subtotal: 0, tax: 0, total: 0, invoices: 0 }
+    );
+
+    res.json({
+      date,
+      storeName: "Supermarket POS",
+      invoices,
+      products: productAgg,
+      cashiers,
+      totals,
+    });
+  } catch (err) {
+    console.error("Daily summary error:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+
+
+
 module.exports = router;

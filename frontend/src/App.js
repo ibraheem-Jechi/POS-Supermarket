@@ -13,7 +13,10 @@ import YearlyReport from "./pages/YearlyReport";
 import Reports from "./pages/Reports";
 
 
+
+
 import { FaBars } from "react-icons/fa";
+import DailySummary from "./pages/DailySummary";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -118,6 +121,8 @@ function App() {
           {page === "monthlyReport" && <MonthlyReport user={user} />}
           {page === "yearlyReport" && <YearlyReport user={user} />}
           {page === "reports" && <Reports user={user} />}
+          {page === "dailySummary" && <DailySummary user={user} />}
+
 
         </div>
       </div>

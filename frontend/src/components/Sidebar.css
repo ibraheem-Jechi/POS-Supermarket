@@ -114,3 +114,8 @@
   border-radius: 6px;
   cursor: pointer;
 }
+
+button.logout.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

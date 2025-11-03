@@ -75,7 +75,7 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
       </button>
 
       {/* Sidebar.js */}
-<button className="nav-button" onClick={() => setPage('dailyReading')}>
+<button className="nav-button" onClick={() => setPage('dailySummary')}>
   📖Main Reading
 </button>
 
@@ -94,16 +94,36 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
       </button>
       
 
-      <button
-        className="logout-btn"
-        onClick={() => {
-          setUser(null);
-          setPage('');
-          localStorage.clear();
-        }}
-      >
-        <FaSignOutAlt /> Logout
-      </button>
+    <button
+  className={`logout-btn ${localStorage.getItem("activeShift") ? "disabled" : ""}`}
+  onClick={() => {
+    const activeShift = JSON.parse(localStorage.getItem("activeShift") || "null");
+
+    // 🚫 Prevent logout while shift active
+    if (activeShift) {
+      alert(
+        `🚫 You cannot log out while a shift is active.\n\nCashier: ${activeShift.cashier}\nStarted: ${new Date(
+          activeShift.startTime
+        ).toLocaleString()}\n\nPlease end your shift first.`
+      );
+      return;
+    }
+
+    // ✅ Confirm logout
+    const confirmLogout = window.confirm("Are you sure you want to log out?");
+    if (!confirmLogout) return;
+
+    localStorage.removeItem("user");
+    localStorage.removeItem("page");
+    localStorage.removeItem("activeShift");
+    setUser(null);
+    setPage("");
+  }}
+>
+  <FaSignOutAlt /> Logout
+</button>
+
+
     </div>
   );
 }

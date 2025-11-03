@@ -1,110 +1,96 @@
-.report-container {
+.summary-container {
   padding: 20px;
-  background: #f9fafc;
+  background: #f7f9fb;
   border-radius: 8px;
+  font-family: "Segoe UI", sans-serif;
 }
 
-.page-title {
+.title {
   text-align: center;
+  margin-bottom: 20px;
   color: #2c3e50;
   font-weight: 700;
-  margin-bottom: 20px;
 }
 
-.report-controls {
+.controls {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
   justify-content: center;
-}
-
-.btn-run, .btn-print {
-  background: #3498db;
-  border: none;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-.btn-print { background: #27ae60; }
-.btn-run:hover { background: #2980b9; }
-.btn-print:hover { background: #1e8449; }
-
-.invoice.professional {
-  font-size: 13px;
-  color: #2c3e50;
-}
-
-.invoice-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-.invoice-header h3 {
-  margin: 5px 0;
-}
-.invoice-header .icon {
-  font-size: 32px;
-  color: #2980b9;
-}
-
-.card {
-  background: #fff;
-  padding: 15px;
+  gap: 10px;
   margin-bottom: 15px;
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.summary-table, .compact-table {
+.controls input[type="date"],
+.controls button {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.controls button {
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.controls button:hover {
+  background: #0056b3;
+}
+
+.summary-paper {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  max-width: 900px;
+  margin: auto;
+}
+
+.store-name {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #222;
+}
+
+.invoice-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.invoice-table th, .invoice-table td {
+  border: 1px solid #e0e0e0;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.invoice-table th {
+  background: #f4f6f8;
+  font-weight: 600;
+}
+
+.totals {
+  text-align: right;
   margin-top: 10px;
 }
 
-.summary-table th, .summary-table td,
-.compact-table th, .compact-table td {
-  border: 1px solid #e1e1e1;
-  padding: 6px 8px;
-  text-align: left;
-}
-
-.summary-table th {
-  background: #ecf0f1;
-}
-.compact-table th {
-  background: #f4f6f7;
-}
-
-.highlight {
-  font-weight: bold;
-  color: #27ae60;
-}
-
-.invoice-title {
-  margin: 6px 0;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.invoice-footer {
+.footer-note {
   text-align: center;
-  margin-top: 15px;
   font-size: 12px;
-  color: #7f8c8d;
+  color: #888;
+  margin-top: 20px;
 }
 
-/* ✅ Print optimization */
 @media print {
   body * { visibility: hidden; }
-  .invoice, .invoice * { visibility: visible; }
-  .invoice { 
+  .summary-paper, .summary-paper * { visibility: visible; }
+  .summary-paper { 
     position: absolute; 
-    top: 0; left: 0; 
-    width: 100%; 
-    background: #fff;
+    top: 0; 
+    left: 0; 
+    width: 100%;
   }
-  .report-controls, .page-title {
-    display: none;
-  }
+  .controls, .title { display: none; }
 }
