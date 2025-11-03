@@ -111,7 +111,7 @@ export default function POSPage({ user }) {
       if (res.data?.invoiceNumber) {
         setInvoiceNumber(res.data.invoiceNumber);
         setLastCartData({ ...cartData, invoiceNumber: res.data.invoiceNumber });
-        setShowInvoice(true); // ✅ تظهر الفاتورة مباشرة بعد Complete Sale
+        setShowInvoice(true); // ✅ تظهر الفاتورة مباشرة بعد Complete Sale bilal mohammad al saleh 
       } else {
         alert("✅ Payment complete! (no invoice number returned)");
       }
