@@ -12,15 +12,18 @@ export default function POSPage({ user }) {
   const [category, setCategory] = useState("All");
   const [barcode, setBarcode] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState(null);
-  const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0); // ✅ NEW
+  const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
 
-  // Fetch products
   useEffect(() => {
     setLoading(true);
     api
       .get("/products")
       .then((res) => setProducts(res.data))
-      .catch(() => setErr("Failed to load products"))
+      .catch((e) => {
+        console.error("Failed to load products:", e);
+        const msg = e.response?.data?.message || e.message || "Failed to load products";
+        setErr(msg);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -41,7 +44,6 @@ export default function POSPage({ user }) {
     });
   }, [products, query, category]);
 
-  // Cart functions
   const addToCart = (p) => {
     setCart((prev) => {
       const existing = prev[p._id];
@@ -51,7 +53,7 @@ export default function POSPage({ user }) {
         [p._id]: {
           productId: p._id,
           name: p.productName,
-          price: p.productPrice,
+          price: Number(p.productPrice) || 0,
           qty,
         },
       };
@@ -87,10 +89,8 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
-  // 🟢 Checkout
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
-
     try {
       const saleData = {
         lines: lines.map((i) => ({
@@ -105,36 +105,29 @@ export default function POSPage({ user }) {
         cashier: user?.username || "unknown",
       };
 
-  console.log('POS completeSale sending:', saleData);
-  const res = await axios.post("http://localhost:5000/api/sales", saleData);
-  console.log('POS completeSale response:', res.data);
+      console.log("POS completeSale sending:", saleData);
+      const res = await axios.post("http://localhost:5000/api/sales", saleData);
+      console.log("POS completeSale response:", res.data);
 
-      // 2) Update stock quantities
       const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-        items: lines.map((i) => ({
-          productId: i.productId,
-          qty: i.qty,
-        })),
+        items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
       });
 
-      // ✅ Show errors (if stock not enough → cancel sale)
       if (stockRes.data.errors && stockRes.data.errors.length > 0) {
         alert(stockRes.data.errors.join("\n"));
-        return; // ⛔ Stop here → don’t complete sale
+        return;
       }
 
-      // ✅ Show warnings (low stock or out of stock)
       if (stockRes.data.warnings && stockRes.data.warnings.length > 0) {
         alert(stockRes.data.warnings.join("\n"));
       }
 
-      // 3) Show success with invoice number & loyalty points
       if (res.data && res.data.invoiceNumber != null) {
         setInvoiceNumber(res.data.invoiceNumber);
-        setLoyaltyPointsEarned(res.data.loyaltyPoints || 0); // ✅ NEW
+        setLoyaltyPointsEarned(res.data.loyaltyPoints || 0);
         alert(
           `✅ Payment complete! Invoice #${res.data.invoiceNumber}\n` +
-          `🎁 Loyalty Points Earned: ${res.data.loyaltyPoints || 0}`
+            `🎁 Loyalty Points Earned: ${res.data.loyaltyPoints || 0}`
         );
       } else {
         alert("✅ Payment complete! (no invoice number returned)");
@@ -147,7 +140,6 @@ export default function POSPage({ user }) {
     }
   };
 
-  // --- Barcode quick add ---
   const onBarcodeEnter = (e) => {
     if (e.key !== "Enter") return;
     const p = products.find((p) => (p.barcode || "") === barcode.trim());
@@ -158,7 +150,6 @@ export default function POSPage({ user }) {
   return (
     <div className="container-fluid bg-light min-vh-100 p-4">
       <div className="row">
-        {/* Products Section */}
         <div className="col-md-8 mb-4">
           <div className="card shadow-sm p-3 h-100">
             <input
@@ -168,7 +159,6 @@ export default function POSPage({ user }) {
               className="form-control mb-3"
             />
 
-            {/* Category Chips */}
             <div className="mb-3 d-flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
@@ -183,7 +173,6 @@ export default function POSPage({ user }) {
               ))}
             </div>
 
-            {/* Barcode Input */}
             <div className="mb-3">
               <input
                 value={barcode}
@@ -194,7 +183,6 @@ export default function POSPage({ user }) {
               />
             </div>
 
-            {/* Products Grid */}
             {loading ? (
               <p>Loading…</p>
             ) : err ? (
@@ -221,7 +209,6 @@ export default function POSPage({ user }) {
           </div>
         </div>
 
-        {/* Cart Section */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm p-3 sticky-top">
             <h5 className="mb-3">Cart</h5>
@@ -252,9 +239,7 @@ export default function POSPage({ user }) {
                       >
                         +
                       </button>
-                      <span className="fw-bold ms-2">
-                        ${(i.price * i.qty).toFixed(2)}
-                      </span>
+                      <span className="fw-bold ms-2">${(i.price * i.qty).toFixed(2)}</span>
                       <button
                         onClick={() => removeItem(i.productId)}
                         className="btn btn-link text-danger p-0 ms-2"
@@ -267,7 +252,6 @@ export default function POSPage({ user }) {
               </ul>
             )}
 
-            {/* Totals */}
             <div className="mb-3">
               <div className="d-flex justify-content-between">
                 <span>Subtotal</span>
@@ -282,16 +266,11 @@ export default function POSPage({ user }) {
                 <span>${total.toFixed(2)}</span>
               </div>
               {invoiceNumber && (
-                <div className="mt-2 text-success">
-                  🎁 Loyalty Points Earned: {loyaltyPointsEarned}
-                </div>
+                <div className="mt-2 text-success">🎁 Loyalty Points Earned: {loyaltyPointsEarned}</div>
               )}
             </div>
 
-            {/* Checkout */}
-            <button onClick={completeSale} className="btn btn-primary w-100">
-              Complete Sale
-            </button>
+            <button onClick={completeSale} className="btn btn-primary w-100">Complete Sale</button>
           </div>
         </div>
       </div>

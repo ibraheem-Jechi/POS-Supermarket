@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 
 const app = express();
 
@@ -13,7 +14,7 @@ const corsOptions = {
   origin: 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -29,11 +30,27 @@ app.get('/', (req, res) => {
 // --------------------------
 // API Routes
 // --------------------------
-const productRoutes = require('./routes/productRoutes');
+
+// Product Routes
+const expressRouter = require('express').Router;
+const Product = require('./models/productModel'); // adjust path if needed
+const productRoutes = expressRouter();
+
+// GET all products
+productRoutes.get('/', async (req, res) => {
+  try {
+    const products = await Product.find(); // fetch all products
+    res.json(products);
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).json({ message: 'Failed to load products' });
+  }
+});
 app.use('/api/products', productRoutes);
 
-const cartsRoute = require("./routes/carts");
-app.use("/api/carts", cartsRoute);
+// Other existing routes
+const cartsRoute = require('./routes/carts');
+app.use('/api/carts', cartsRoute);
 
 const saleRoutes = require('./routes/saleRoutes');
 app.use('/api/sales', saleRoutes);
@@ -41,15 +58,34 @@ app.use('/api/sales', saleRoutes);
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
-const categoryRoutes = require("./routes/categoryRoutes");
-app.use("/api/categories", categoryRoutes);
+const categoryRoutes = require('./routes/categoryRoutes');
+app.use('/api/categories', categoryRoutes);
 
-const reportRoutes = require("./routes/reportRoutes");
-app.use("/api/reports", reportRoutes);
+const reportRoutes = require('./routes/reportRoutes');
+app.use('/api/reports', reportRoutes);
 
-// ✅ NEW ALERTS ROUTE
-const alertsRoute = require("./routes/alerts");
-app.use("/api/alerts", alertsRoute);
+const alertsRoute = require('./routes/alerts');
+app.use('/api/alerts', alertsRoute);
+
+// --------------------------
+// Optional: Patch categoryName field on startup
+// --------------------------
+const patchCategories = async () => {
+  try {
+    const Category = require('./models/categoryModel');
+    const result = await Category.updateMany(
+      { $or: [{ categoryName: { $exists: false } }, { categoryName: null }] },
+      [{ $set: { categoryName: '$name' } }]
+    );
+    if (result.modifiedCount > 0) {
+      console.log(`✅ Patched ${result.modifiedCount} category documents to set categoryName`);
+    } else {
+      console.log('✅ No category documents needed patching');
+    }
+  } catch (err) {
+    console.error('Error patching categories on startup:', err.message || err);
+  }
+};
 
 // --------------------------
 // Server & Database Setup
@@ -57,34 +93,17 @@ app.use("/api/alerts", alertsRoute);
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
 
-mongoose.connect(MONGO)
-  .then(() => {
+mongoose
+  .connect(MONGO)
+  .then(async () => {
     console.log('✅ MongoDB connected');
 
-    // Optional: auto-fix categoryName field if missing
-    try {
-      const Category = require('./models/categoryModel');
-      Category.updateMany(
-        { $or: [{ categoryName: { $exists: false } }, { categoryName: null }] },
-        [{ $set: { categoryName: '$name' } }]
-      )
-        .then((result) => {
-          if (result.modifiedCount && result.modifiedCount > 0) {
-            console.log(`✅ Patched ${result.modifiedCount} category documents to set categoryName`);
-          } else {
-            console.log('✅ No category documents needed patching');
-          }
-        })
-        .catch((err) => {
-          console.error('Error patching categories on startup:', err.message || err);
-        });
-    } catch (e) {
-      console.error('Could not run startup patch for categories:', e.message || e);
-    }
+    // Run category patch
+    await patchCategories();
 
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
