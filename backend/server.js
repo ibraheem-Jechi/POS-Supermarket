@@ -20,6 +20,12 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Simple request logger to help debug 404s/misrouted requests
+app.use((req, res, next) => {
+  console.log(`--> ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // --------------------------
 // Health-check route
 // --------------------------
@@ -31,21 +37,8 @@ app.get('/', (req, res) => {
 // API Routes
 // --------------------------
 
-// Product Routes
-const expressRouter = require('express').Router;
-const Product = require('./models/productModel'); // adjust path if needed
-const productRoutes = expressRouter();
-
-// GET all products
-productRoutes.get('/', async (req, res) => {
-  try {
-    const products = await Product.find(); // fetch all products
-    res.json(products);
-  } catch (err) {
-    console.error('Error fetching products:', err);
-    res.status(500).json({ message: 'Failed to load products' });
-  }
-});
+// Product Routes - use the routes file so edits and logging are applied
+const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
 
 // Other existing routes
@@ -66,6 +59,39 @@ app.use('/api/reports', reportRoutes);
 
 const alertsRoute = require('./routes/alerts');
 app.use('/api/alerts', alertsRoute);
+
+// Debug: list registered routes (helpful to confirm product routes are mounted)
+app.get('/api/debug/routes', (req, res) => {
+  try {
+    const routes = [];
+    app._router.stack.forEach((middleware) => {
+      if (middleware.route) {
+        // routes registered directly on the app
+        routes.push({ path: middleware.route.path, methods: middleware.route.methods });
+      } else if (middleware.name === 'router' && middleware.handle && middleware.handle.stack) {
+        // router middleware
+        middleware.handle.stack.forEach((handler) => {
+          const route = handler.route;
+          if (route) routes.push({ path: route.path, methods: route.methods });
+        });
+      }
+    });
+    res.json({ routes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ NEW: Stats route (for top products etc.)
+const statsRoutes = require('./routes/stats');
+app.use('/api/stats', statsRoutes);
+
+const expenseRoutes = require('./routes/expenseRoutes');
+app.use('/api/expenses', expenseRoutes);
+
+const profitRoutes = require('./routes/profitRoutes');
+app.use('/api/profit', profitRoutes);
+
 
 // --------------------------
 // Optional: Patch categoryName field on startup

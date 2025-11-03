@@ -89,8 +89,9 @@ const ProductsPage = () => {
       setEditingId(null);
       fetchProducts();
     } catch (err) {
-      console.error("Error saving product:", err);
-      alert("❌ Error saving product");
+      const serverMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      console.error("Error saving product:", err.response?.data || err.message);
+      alert(`❌ Error saving product: ${serverMsg}`);
     }
   };
 

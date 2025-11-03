@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "./components/Sidebar";
 import LoginPage from "./pages/LoginPage";
 import POSPage from "./pages/POS/POSpage";
+import Tops from "./pages/Tops";
+import Wins from "./pages/Wins";
+import Expenses from "./pages/Expenses";
 import AdminDashboard from "./pages/AdminDashboard";
 import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
@@ -128,6 +131,10 @@ return (
         {page === "category" && <CategoryPage />}
         {page === "alerts" && <AlertsPage />}
         {page === "dailyReport" && <DailyReport user={user} />}
+        {page === "tops" && <Tops />}
+        {page === "expenses" && <Expenses />}
+        {page === "wins" && <Wins />}
+
       </div>
     </div>
   </div>
