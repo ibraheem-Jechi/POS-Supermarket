@@ -14,8 +14,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
-import AlertsPage from "./pages/AlertsPage";
-import DailyReport from "./pages/DailyReport";
+import AlertsPage from "./pages/AlertsPage.js";   // ✅ FIXED
+import DailyReport from "./pages/DailyReport.js"; // ✅ FIXED
 import MonthlyReport from "./pages/MonthlyReport";
 import YearlyReport from "./pages/YearlyReport";
 import Reports from "./pages/Reports";
