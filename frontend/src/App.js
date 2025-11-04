@@ -1,21 +1,32 @@
 import React, { useState, useEffect } from "react";
+import { FaBars } from "react-icons/fa"; // ✅ استيراد وحيد وصحيح
+
+// Components
 import Sidebar from "./components/Sidebar";
 import LoginPage from "./pages/LoginPage";
+
+// Pages
 import POSPage from "./pages/POS/POSpage";
+import Tops from "./pages/Tops";
+import Wins from "./pages/Wins";
+import Expenses from "./pages/Expenses";
 import AdminDashboard from "./pages/AdminDashboard";
 import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
 import AlertsPage from "./pages/AlertsPage";
 import DailyReport from "./pages/DailyReport";
-import { FaBars } from "react-icons/fa";
+import MonthlyReport from "./pages/MonthlyReport";
+import YearlyReport from "./pages/YearlyReport";
+import Reports from "./pages/Reports";
+import DailySummary from "./pages/DailySummary";
 
 function App() {
   const [user, setUser] = useState(null);
   const [page, setPage] = useState("");
   const [collapsed, setCollapsed] = useState(false);
 
-  // ✅ Load saved data
+  // Load saved user + page
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedPage = localStorage.getItem("page");
@@ -23,18 +34,18 @@ function App() {
     if (savedPage) setPage(savedPage.toLowerCase());
   }, []);
 
-  // ✅ Save user in storage
+  // Persist user + page
   useEffect(() => {
     if (user) localStorage.setItem("user", JSON.stringify(user));
     else localStorage.removeItem("user");
   }, [user]);
 
-  // ✅ Save page in storage
+  // Save page in storage
   useEffect(() => {
     if (page) localStorage.setItem("page", page);
   }, [page]);
 
-  // ✅ Login logic
+  // If not logged in → show login page
   if (!user) {
     return (
       <LoginPage
@@ -46,20 +57,16 @@ function App() {
     );
   }
 
-  // ✅ Dashboard logic
-  const DashboardPage = () => (
-    <div>
-      {user.role === "admin" ? (
-        <AdminDashboard user={user} />
-      ) : (
-        <p>
-          Welcome, {user.username}! You are logged in as <b>{user.role}</b>.
-        </p>
-      )}
-    </div>
-  );
+  // Dashboard wrapper
+  const DashboardPage = () =>
+    user.role === "admin" ? (
+      <AdminDashboard user={user} />
+    ) : (
+      <p>
+        Welcome, {user.username}! You are logged in as <b>{user.role}</b>.
+      </p>
+    );
 
-  // ✅ Main Layout
   return (
     <div
       style={{
@@ -67,11 +74,10 @@ function App() {
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        position: "relative",
         background: "#f4f6f8",
       }}
     >
-      {/* === Hamburger Menu === */}
+      {/* Hamburger Menu */}
       <FaBars
         className="hamburger"
         onClick={() => setCollapsed(!collapsed)}
@@ -90,7 +96,7 @@ function App() {
         }}
       />
 
-      {/* === Header === */}
+      {/* Header */}
       <header
         style={{
           background: "linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%)",
@@ -106,16 +112,11 @@ function App() {
         🛒 Supermarket POS
       </header>
 
-      {/* === Body === */}
+      {/* Main Layout */}
       <div style={{ display: "flex", flex: 1 }}>
-        <Sidebar
-          user={user}
-          setPage={setPage}
-          setUser={setUser}
-          collapsed={collapsed}
-        />
+        <Sidebar user={user} setPage={setPage} setUser={setUser} collapsed={collapsed} />
 
-        <div
+        <main
           style={{
             flex: 1,
             padding: "20px",
@@ -125,18 +126,24 @@ function App() {
             boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
             backdropFilter: "blur(10px)",
             transition: "margin-left 0.3s ease",
-            marginLeft: collapsed ? "0px" : "0px",
           }}
         >
-          {/* === Page Switch === */}
-          {page.toLowerCase() === "pos" && <POSPage user={user} />}
-          {page.toLowerCase() === "products" && <ProductsPage />}
-          {page.toLowerCase() === "dashboard" && <DashboardPage />}
-          {page.toLowerCase() === "saleshistory" && <SalesHistory user={user} />}
-          {page.toLowerCase() === "category" && <CategoryPage />}
-          {page.toLowerCase() === "alerts" && <AlertsPage />}
-          {page.toLowerCase() === "dailyreport" && <DailyReport user={user} />}
-        </div>
+          {/* Route-based content */}
+          {page === "dashboard" && <DashboardPage />}
+          {page === "pos" && <POSPage user={user} />}
+          {page === "products" && <ProductsPage />}
+          {page === "saleshistory" && <SalesHistory user={user} />}
+          {page === "category" && <CategoryPage />}
+          {page === "alerts" && <AlertsPage />}
+          {page === "dailyreport" && <DailyReport user={user} />}
+          {page === "monthlyreport" && <MonthlyReport user={user} />}
+          {page === "yearlyreport" && <YearlyReport user={user} />}
+          {page === "reports" && <Reports user={user} />}
+          {page === "dailysummary" && <DailySummary user={user} />}
+          {page === "tops" && <Tops />}
+          {page === "expenses" && <Expenses />}
+          {page === "wins" && <Wins />}
+        </main>
       </div>
     </div>
   );

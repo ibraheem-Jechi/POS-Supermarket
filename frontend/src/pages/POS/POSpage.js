@@ -11,9 +11,15 @@ export default function POSPage({ user }) {
   const [err, setErr] = useState("");
   const [category, setCategory] = useState("All");
   const [barcode, setBarcode] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState(null);
+  const [invoiceData, setInvoiceData] = useState(null);
   const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
 
+  const [activeShift, setActiveShift] = useState(() => {
+    const cached = localStorage.getItem("activeShift");
+    return cached ? JSON.parse(cached) : null;
+  });
+
+  // ✅ Fetch products
   useEffect(() => {
     setLoading(true);
     api
@@ -21,12 +27,30 @@ export default function POSPage({ user }) {
       .then((res) => setProducts(res.data))
       .catch((e) => {
         console.error("Failed to load products:", e);
-        const msg = e.response?.data?.message || e.message || "Failed to load products";
-        setErr(msg);
+        setErr(e.response?.data?.message || e.message || "Failed to load products");
       })
       .finally(() => setLoading(false));
   }, []);
 
+  // ✅ Load current active shift
+  useEffect(() => {
+    const cashier = user?.username;
+    if (!cashier) return;
+    axios
+      .get(`http://localhost:5000/api/shifts/active?cashier=${encodeURIComponent(cashier)}`)
+      .then((res) => {
+        if (res.data) {
+          setActiveShift(res.data);
+          localStorage.setItem("activeShift", JSON.stringify(res.data));
+        } else {
+          setActiveShift(null);
+          localStorage.removeItem("activeShift");
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
+  // ✅ Category filtering
   const categories = useMemo(
     () => ["All", ...Array.from(new Set(products.map((p) => p.productCategory)))],
     [products]
@@ -44,7 +68,8 @@ export default function POSPage({ user }) {
     });
   }, [products, query, category]);
 
-  const addToCart = (p) => {
+  // ✅ Cart helpers
+  const addToCart = (p) =>
     setCart((prev) => {
       const existing = prev[p._id];
       const qty = existing ? existing.qty + 1 : 1;
@@ -58,7 +83,6 @@ export default function POSPage({ user }) {
         },
       };
     });
-  };
 
   const decQty = (id) =>
     setCart((prev) => {
@@ -89,10 +113,52 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
+  // ✅ Shift control
+  const startShift = async () => {
+    if (activeShift) return alert("⚠️ You already have an active shift.");
+    const confirmStart = window.confirm(`🟢 Start your shift as ${user.username}?`);
+    if (!confirmStart) return;
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/shifts/start", {
+        cashier: user?.username,
+      });
+      setActiveShift(res.data);
+      localStorage.setItem("activeShift", JSON.stringify(res.data));
+      alert(`✅ Shift started at ${new Date(res.data.startTime).toLocaleTimeString()}`);
+    } catch {
+      alert("❌ Could not start shift");
+    }
+  };
+
+  const endShift = async () => {
+    if (!activeShift) return alert("⚠️ You have no active shift to end.");
+    const confirmEnd = window.confirm(`🔴 End shift for ${user.username}?`);
+    if (!confirmEnd) return;
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/shifts/end", {
+        cashier: user?.username,
+      });
+      setActiveShift(null);
+      localStorage.removeItem("activeShift");
+      alert(`✅ Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
+    } catch {
+      alert("❌ Could not end shift");
+    }
+  };
+
+  // ✅ Complete sale
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
+    if (!activeShift) {
+      const proceed = window.confirm("No active shift. Start one before selling?");
+      if (proceed) await startShift();
+      else return;
+    }
+
     try {
-      const saleData = {
+      const cartData = {
         lines: lines.map((i) => ({
           productId: i.productId,
           name: i.name,
@@ -103,62 +169,70 @@ export default function POSPage({ user }) {
         tax,
         total,
         cashier: user?.username || "unknown",
+        shiftId: activeShift?._id || null,
       };
 
-      console.log("POS completeSale sending:", saleData);
-      const res = await axios.post("http://localhost:5000/api/sales", saleData);
-      console.log("POS completeSale response:", res.data);
+      const saleRes = await axios.post("http://localhost:5000/api/sales", cartData);
 
-      const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-        items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
+      setInvoiceData({
+        invoiceNumber: saleRes.data.invoiceNumber,
+        items: lines,
+        subtotal,
+        tax,
+        total,
+        cashier: user?.username,
+        date: new Date().toLocaleString(),
       });
 
-      if (stockRes.data.errors && stockRes.data.errors.length > 0) {
-        alert(stockRes.data.errors.join("\n"));
-        return;
-      }
-
-      if (stockRes.data.warnings && stockRes.data.warnings.length > 0) {
-        alert(stockRes.data.warnings.join("\n"));
-      }
-
-      if (res.data && res.data.invoiceNumber != null) {
-        setInvoiceNumber(res.data.invoiceNumber);
-        setLoyaltyPointsEarned(res.data.loyaltyPoints || 0);
-        alert(
-          `✅ Payment complete! Invoice #${res.data.invoiceNumber}\n` +
-            `🎁 Loyalty Points Earned: ${res.data.loyaltyPoints || 0}`
-        );
-      } else {
-        alert("✅ Payment complete! (no invoice number returned)");
-      }
-
+      setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
+      alert(`✅ Sale complete! Invoice #${saleRes.data.invoiceNumber}`);
       setCart({});
     } catch (err) {
-      console.error("❌ Failed to save cart:", err.response?.data || err.message);
-      alert("❌ Failed to save cart");
+      console.error("❌ Sale failed:", err);
+      alert("❌ Sale failed");
     }
   };
 
   const onBarcodeEnter = (e) => {
-    if (e.key !== "Enter") return;
-    const p = products.find((p) => (p.barcode || "") === barcode.trim());
-    if (p) addToCart(p);
-    setBarcode("");
+    if (e.key === "Enter") {
+      const p = products.find((p) => (p.barcode || "") === barcode.trim());
+      if (p) addToCart(p);
+      setBarcode("");
+    }
   };
 
   return (
     <div className="container-fluid bg-light min-vh-100 p-4">
+      {/* ✅ Shift Controls */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="d-flex gap-2">
+          <button className="btn btn-success" onClick={startShift} disabled={!!activeShift}>
+            ▶ Start Shift
+          </button>
+          <button className="btn btn-danger" onClick={endShift} disabled={!activeShift}>
+            ■ End Shift
+          </button>
+        </div>
+        {activeShift ? (
+          <div className="alert alert-primary py-1 px-2 mb-0">
+            <strong>Active Shift:</strong> {user?.username} ·{" "}
+            {new Date(activeShift.startTime).toLocaleTimeString()}
+          </div>
+        ) : (
+          <div className="text-muted">No active shift</div>
+        )}
+      </div>
+
       <div className="row">
+        {/* === Products === */}
         <div className="col-md-8 mb-4">
           <div className="card shadow-sm p-3 h-100">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products or categories…"
+              placeholder="Search products..."
               className="form-control mb-3"
             />
-
             <div className="mb-3 d-flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
@@ -173,15 +247,13 @@ export default function POSPage({ user }) {
               ))}
             </div>
 
-            <div className="mb-3">
-              <input
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                onKeyDown={onBarcodeEnter}
-                placeholder="Scan/enter barcode and press Enter"
-                className="form-control"
-              />
-            </div>
+            <input
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              onKeyDown={onBarcodeEnter}
+              placeholder="Scan barcode and press Enter"
+              className="form-control mb-3"
+            />
 
             {loading ? (
               <p>Loading…</p>
@@ -193,7 +265,7 @@ export default function POSPage({ user }) {
                   <div key={p._id} className="col">
                     <button
                       onClick={() => addToCart(p)}
-                      className="card p-2 w-100 h-100 border-0 shadow-sm hover-shadow"
+                      className="card p-2 w-100 h-100 border-0 shadow-sm"
                     >
                       <div className="fw-semibold mb-2">{p.productName}</div>
                       <div className="d-flex justify-content-between align-items-center">
@@ -203,16 +275,17 @@ export default function POSPage({ user }) {
                     </button>
                   </div>
                 ))}
-                {!filtered.length && <div className="text-muted mt-2">No products</div>}
               </div>
             )}
           </div>
         </div>
 
+        {/* === Cart === */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm p-3 sticky-top">
             <h5 className="mb-3">Cart</h5>
-            {lines.length === 0 ? (
+
+            {!lines.length ? (
               <div className="text-muted">No items yet</div>
             ) : (
               <ul className="list-group mb-3">
@@ -239,7 +312,6 @@ export default function POSPage({ user }) {
                       >
                         +
                       </button>
-                      <span className="fw-bold ms-2">${(i.price * i.qty).toFixed(2)}</span>
                       <button
                         onClick={() => removeItem(i.productId)}
                         className="btn btn-link text-danger p-0 ms-2"
@@ -265,12 +337,106 @@ export default function POSPage({ user }) {
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
-              {invoiceNumber && (
-                <div className="mt-2 text-success">🎁 Loyalty Points Earned: {loyaltyPointsEarned}</div>
-              )}
             </div>
 
-            <button onClick={completeSale} className="btn btn-primary w-100">Complete Sale</button>
+            <button onClick={completeSale} className="btn btn-primary w-100 mb-2">
+              Complete Sale
+            </button>
+
+            {/* ✅ Invoice */}
+            {invoiceData && (
+              <div id="invoice" className="card p-3 mt-3 shadow-sm">
+                <h5 className="text-center mb-3">Supermarket Invoice</h5>
+                <p>
+                  <strong>Invoice #:</strong> {invoiceData.invoiceNumber}
+                  <br />
+                  <strong>Cashier:</strong> {invoiceData.cashier}
+                  <br />
+                  <strong>Date:</strong> {invoiceData.date}
+                </p>
+                <hr />
+                <ul className="list-group mb-3">
+                  {invoiceData.items.map((i) => (
+                    <li
+                      key={i.productId}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <div>
+                        {i.name} × {i.qty}
+                      </div>
+                      <div>${(i.price * i.qty).toFixed(2)}</div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="d-flex justify-content-between">
+                  <strong>Subtotal:</strong>
+                  <span>${invoiceData.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <strong>Tax:</strong>
+                  <span>${invoiceData.tax.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between fs-5 mt-2">
+                  <strong>Total:</strong>
+                  <strong>${invoiceData.total.toFixed(2)}</strong>
+                </div>
+                <hr />
+                <p className="text-center text-success mb-2">
+                  🎁 Loyalty Points: {loyaltyPointsEarned}
+                </p>
+
+                {/* ✅ Print + Close Buttons */}
+                <div className="d-flex flex-column gap-2">
+                  <button
+                    className="btn btn-success w-100"
+                    onClick={() => {
+                      const printContents = `
+                        <div style="font-family:'Courier New',monospace;width:80mm;padding:8px;">
+                          <h2 style="text-align:center;margin:0;">🏪 Supermarket</h2>
+                          <hr style="border:none;border-top:1px dashed #000;margin:5px 0;">
+                          ${document
+                            .getElementById("invoice")
+                            .innerHTML.replace("🖨️ Print Invoice", "")
+                            .replace("❌ Close", "")}
+                          <hr style="border:none;border-top:1px dashed #000;margin:5px 0;">
+                          <div style="text-align:center;font-size:11px;">
+                            Thank you for shopping!<br/>${new Date().toLocaleString()}
+                          </div>
+                        </div>
+                      `;
+                      const printWindow = window.open("", "_blank", "width=800,height=1000");
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Invoice</title>
+                            <style>
+                              @page { size: 80mm auto; margin: 0; }
+                              body { margin: 0; background: #fff; }
+                            </style>
+                          </head>
+                          <body>${printContents}</body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      setTimeout(() => {
+                        printWindow.print();
+                        printWindow.close();
+                      }, 500);
+                    }}
+                  >
+                    🖨️ Print Invoice
+                  </button>
+
+                  <button
+                    className="btn btn-outline-danger w-100"
+                    onClick={() => setInvoiceData(null)}
+                  >
+                    ❌ Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -42,10 +42,6 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
     return () => clearInterval(id);
   }, []);
 
-  useEffect(() => {
-    console.log("Alert count updated:", alertCount);
-  }, [alertCount]);
-
   // === Sidebar UI ===
   return (
     <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -116,14 +112,17 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         </>
       )}
 
-      <button className="nav-button" onClick={() => setPage("salesHistory")}>
+      <button className="nav-button" onClick={() => setPage("saleshistory")}>
         <FaHistory />
         <span>Sales History</span>
       </button>
 
-      <button className="nav-button" onClick={() => setPage("dailyReport")}>
-        <FaChartLine />
-        <span>Daily Report</span>
+      <button className="nav-button" onClick={() => setPage("dailysummary")}>
+        📖 Main Reading
+      </button>
+
+      <button className="nav-button" onClick={() => setPage("reports")}>
+        📑 Reports
       </button>
 
       {/* === Alerts Button (with badge) === */}
@@ -139,15 +138,30 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
 
       {/* === Logout === */}
       <button
-        className="logout-btn"
+        className={`logout-btn ${localStorage.getItem("activeShift") ? "disabled" : ""}`}
         onClick={() => {
+          const activeShift = JSON.parse(localStorage.getItem("activeShift") || "null");
+
+          if (activeShift) {
+            alert(
+              `🚫 You cannot log out while a shift is active.\n\nCashier: ${activeShift.cashier}\nStarted: ${new Date(
+                activeShift.startTime
+              ).toLocaleString()}\n\nPlease end your shift first.`
+            );
+            return;
+          }
+
+          const confirmLogout = window.confirm("Are you sure you want to log out?");
+          if (!confirmLogout) return;
+
+          localStorage.removeItem("user");
+          localStorage.removeItem("page");
+          localStorage.removeItem("activeShift");
           setUser(null);
           setPage("");
-          localStorage.clear();
         }}
       >
-        <FaSignOutAlt />
-        <span>Logout</span>
+        <FaSignOutAlt /> Logout
       </button>
     </div>
   );
