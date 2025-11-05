@@ -37,7 +37,7 @@ app.get('/', (req, res) => {
 // API Routes
 // --------------------------
 
-// Product Routes - use the routes file so edits and logging are applied
+// Product Routes
 const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
 
@@ -60,16 +60,14 @@ app.use('/api/reports', reportRoutes);
 const alertsRoute = require('./routes/alerts');
 app.use('/api/alerts', alertsRoute);
 
-// Debug: list registered routes (helpful to confirm product routes are mounted)
+// Debug route to see all registered routes
 app.get('/api/debug/routes', (req, res) => {
   try {
     const routes = [];
     app._router.stack.forEach((middleware) => {
       if (middleware.route) {
-        // routes registered directly on the app
         routes.push({ path: middleware.route.path, methods: middleware.route.methods });
       } else if (middleware.name === 'router' && middleware.handle && middleware.handle.stack) {
-        // router middleware
         middleware.handle.stack.forEach((handler) => {
           const route = handler.route;
           if (route) routes.push({ path: route.path, methods: route.methods });
@@ -94,8 +92,6 @@ app.use('/api/profit', profitRoutes);
 
 const shiftRoutes = require("./routes/shiftRoutes");
 app.use("/api/shifts", shiftRoutes);
-
-
 
 // --------------------------
 // Optional: Patch categoryName field on startup
@@ -123,8 +119,14 @@ const patchCategories = async () => {
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
 
+// ✅ Improved Mongoose connection with timeout handling
 mongoose
-  .connect(MONGO)
+  .connect(MONGO, {
+    serverSelectionTimeoutMS: 30000, // ⏱️ 30s connection timeout
+    connectTimeoutMS: 30000,
+    socketTimeoutMS: 45000,
+    family: 4, // ✅ Use IPv4 to avoid DNS issues
+  })
   .then(async () => {
     console.log('✅ MongoDB connected');
 

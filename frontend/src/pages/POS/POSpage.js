@@ -13,10 +13,9 @@ export default function POSPage({ user }) {
   const [err, setErr] = useState("");
   const [category, setCategory] = useState("All");
   const [barcode, setBarcode] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState(null);
+  const [invoiceData, setInvoiceData] = useState(null);
   const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
 
-  // ✅ Shift state
   const [activeShift, setActiveShift] = useState(() => {
     const cached = localStorage.getItem("activeShift");
     return cached ? JSON.parse(cached) : null;
@@ -30,13 +29,12 @@ export default function POSPage({ user }) {
       .then((res) => setProducts(res.data))
       .catch((e) => {
         console.error("Failed to load products:", e);
-        const msg = e.response?.data?.message || e.message || "Failed to load products";
-        setErr(msg);
+        setErr(e.response?.data?.message || e.message || "Failed to load products");
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // ✅ Load current active shift on mount
+  // ✅ Load current active shift
   useEffect(() => {
     const cashier = user?.username;
     if (!cashier) return;
@@ -117,7 +115,7 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
-  // ✅ Start Shift
+  // ✅ Shift control
   const startShift = async () => {
     if (activeShift) {
       alert("⚠️ You already have an active shift.");
@@ -145,16 +143,9 @@ export default function POSPage({ user }) {
     }
   };
 
-  // ✅ End Shift
   const endShift = async () => {
-    if (!activeShift) {
-      alert("⚠️ You have no active shift to end.");
-      return;
-    }
-
-    const confirmEnd = window.confirm(
-      `🔴 End shift for ${user.username}?\nAll future sales will be locked until a new shift starts.`
-    );
+    if (!activeShift) return alert("⚠️ You have no active shift to end.");
+    const confirmEnd = window.confirm(`🔴 End shift for ${user.username}?`);
     if (!confirmEnd) return;
 
     try {
@@ -171,30 +162,23 @@ export default function POSPage({ user }) {
     }
   };
 
-  // ✅ Checkout
+  // ✅ Complete sale
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
-
     if (!activeShift) {
-      const proceed = window.confirm(
-        "No active shift. Start one before selling?\n\nPress OK to start now."
-      );
+      const proceed = window.confirm("No active shift. Start one before selling?");
       if (proceed) await startShift();
       else return;
     }
 
     try {
       const cartData = {
-        lines: lines.map((i) => {
-          const product = products.find((p) => p._id === i.productId);
-          return {
-            productId: i.productId,
-            name: i.name,
-            price: i.price,
-            qty: i.qty,
-            productCategory: product ? product.productCategory : "Uncategorized",
-          };
-        }),
+        lines: lines.map((i) => ({
+          productId: i.productId,
+          name: i.name,
+          price: i.price,
+          qty: i.qty,
+        })),
         subtotal,
         tax,
         total,
@@ -202,38 +186,57 @@ export default function POSPage({ user }) {
         shiftId: activeShift?._id || null,
       };
 
-      // Save invoice
-      const cartRes = await axios.post("http://localhost:5000/api/carts", cartData);
+      const saleRes = await axios.post("http://localhost:5000/api/sales", cartData);
 
-      // Save sale
-      const saleRes = await axios.post("http://localhost:5000/api/sales", {
-        ...cartData,
-        cartId: cartRes.data?._id || null,
+      setInvoiceData({
+        invoiceNumber: saleRes.data.invoiceNumber,
+        items: lines,
+        subtotal,
+        tax,
+        total,
+        cashier: user?.username,
+        date: new Date().toLocaleString(),
       });
 
-      // Decrease stock
-      const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-        items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
-      });
+      setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
 
-      if (stockRes.data.errors?.length) return alert(stockRes.data.errors.join("\n"));
-      if (stockRes.data.warnings?.length) alert(stockRes.data.warnings.join("\n"));
+      // Decrease stock for sold items
+      try {
+        const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
+          items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
+        });
 
-      if (saleRes.data?.invoiceNumber) {
-        setInvoiceNumber(saleRes.data.invoiceNumber);
-        setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
-        alert(
-          `✅ Payment complete! Invoice #${saleRes.data.invoiceNumber}\n🎁 Loyalty Points: ${
-            saleRes.data.loyaltyPoints || 0
-          }`
-        );
-      } else {
-        alert("✅ Payment complete!");
+        if (stockRes.data.errors?.length) {
+          alert(stockRes.data.errors.join("\n"));
+        }
+        if (stockRes.data.warnings?.length) {
+          alert(stockRes.data.warnings.join("\n"));
+        }
+
+        // Refresh product list so quantities show updated values
+        try {
+          const prodRes = await api.get("/products");
+          setProducts(prodRes.data);
+        } catch (e) {
+          console.warn("Could not refresh products after sale:", e);
+        }
+
+        // Also fetch alerts immediately and broadcast so Sidebar updates badge
+        try {
+          const alertsRes = await api.get("/alerts");
+          const count = alertsRes.data?.count ?? (Array.isArray(alertsRes.data) ? alertsRes.data.length : 0);
+          window.dispatchEvent(new CustomEvent("alertsUpdated", { detail: { count } }));
+        } catch (e) {
+          console.warn("Could not refresh alerts after sale:", e);
+        }
+      } catch (e) {
+        console.warn("Failed to update stock:", e?.response?.data || e.message || e);
       }
 
+      alert(`✅ Sale complete! Invoice #${saleRes.data.invoiceNumber}`);
       setCart({});
     } catch (err) {
-      console.error("❌ Failed to complete sale:", err.response?.data || err.message);
+      console.error("❌ Sale failed:", err);
       alert("❌ Sale failed");
     }
   };
@@ -248,28 +251,19 @@ export default function POSPage({ user }) {
 
   return (
     <div className="container-fluid bg-light min-vh-100 p-4">
-      {/* ✅ Shift controls */}
+      {/* ✅ Shift Controls */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="d-flex gap-2">
-          <button
-            className="btn btn-success"
-            onClick={startShift}
-            disabled={!!activeShift}
-          >
+          <button className="btn btn-success" onClick={startShift} disabled={!!activeShift}>
             ▶ Start Shift
           </button>
-          <button
-            className="btn btn-danger"
-            onClick={endShift}
-            disabled={!activeShift}
-          >
+          <button className="btn btn-danger" onClick={endShift} disabled={!activeShift}>
             ■ End Shift
           </button>
         </div>
-
         {activeShift ? (
           <div className="alert alert-primary py-1 px-2 mb-0">
-            <strong>Active Shift:</strong> {user?.username} &middot;{" "}
+            <strong>Active Shift:</strong> {user?.username} ·{" "}
             {new Date(activeShift.startTime).toLocaleTimeString()}
           </div>
         ) : (
@@ -278,16 +272,15 @@ export default function POSPage({ user }) {
       </div>
 
       <div className="row">
-        {/* Products */}
+        {/* === Products === */}
         <div className="col-md-8 mb-4">
           <div className="card shadow-sm p-3 h-100">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products or categories…"
+              placeholder="Search products..."
               className="form-control mb-3"
             />
-
             <div className="mb-3 d-flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
@@ -330,22 +323,15 @@ export default function POSPage({ user }) {
                     </button>
                   </div>
                 ))}
-                {!filtered.length && <div className="text-muted mt-2">No products found</div>}
               </div>
             )}
           </div>
         </div>
 
-        {/* Cart */}
+        {/* === Cart === */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm p-3 sticky-top">
             <h5 className="mb-3">Cart</h5>
-
-            {invoiceNumber && (
-              <div className="alert alert-info p-2 mb-3">
-                <strong>Invoice #:</strong> {invoiceNumber}
-              </div>
-            )}
 
             {!lines.length ? (
               <div className="text-muted">No items yet</div>
@@ -374,7 +360,6 @@ export default function POSPage({ user }) {
                       >
                         +
                       </button>
-                      <span className="fw-bold ms-2">${(i.price * i.qty).toFixed(2)}</span>
                       <button
                         onClick={() => removeItem(i.productId)}
                         className="btn btn-link text-danger p-0 ms-2"
@@ -400,16 +385,106 @@ export default function POSPage({ user }) {
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
-              {invoiceNumber && (
-                <div className="mt-2 text-success">
-                  🎁 Loyalty Points Earned: {loyaltyPointsEarned}
-                </div>
-              )}
             </div>
 
-            <button onClick={completeSale} className="btn btn-primary w-100">
+            <button onClick={completeSale} className="btn btn-primary w-100 mb-2">
               Complete Sale
             </button>
+
+            {/* ✅ Invoice */}
+            {invoiceData && (
+              <div id="invoice" className="card p-3 mt-3 shadow-sm">
+                <h5 className="text-center mb-3">Supermarket Invoice</h5>
+                <p>
+                  <strong>Invoice #:</strong> {invoiceData.invoiceNumber}
+                  <br />
+                  <strong>Cashier:</strong> {invoiceData.cashier}
+                  <br />
+                  <strong>Date:</strong> {invoiceData.date}
+                </p>
+                <hr />
+                <ul className="list-group mb-3">
+                  {invoiceData.items.map((i) => (
+                    <li
+                      key={i.productId}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <div>
+                        {i.name} × {i.qty}
+                      </div>
+                      <div>${(i.price * i.qty).toFixed(2)}</div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="d-flex justify-content-between">
+                  <strong>Subtotal:</strong>
+                  <span>${invoiceData.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <strong>Tax:</strong>
+                  <span>${invoiceData.tax.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between fs-5 mt-2">
+                  <strong>Total:</strong>
+                  <strong>${invoiceData.total.toFixed(2)}</strong>
+                </div>
+                <hr />
+                <p className="text-center text-success mb-2">
+                  🎁 Loyalty Points: {loyaltyPointsEarned}
+                </p>
+
+                {/* ✅ Print + Close Buttons */}
+                <div className="d-flex flex-column gap-2">
+                  <button
+                    className="btn btn-success w-100"
+                    onClick={() => {
+                      const printContents = `
+                        <div style="font-family:'Courier New',monospace;width:80mm;padding:8px;">
+                          <h2 style="text-align:center;margin:0;">🏪 Supermarket</h2>
+                          <hr style="border:none;border-top:1px dashed #000;margin:5px 0;">
+                          ${document
+                            .getElementById("invoice")
+                            .innerHTML.replace("🖨️ Print Invoice", "")
+                            .replace("❌ Close", "")}
+                          <hr style="border:none;border-top:1px dashed #000;margin:5px 0;">
+                          <div style="text-align:center;font-size:11px;">
+                            Thank you for shopping!<br/>${new Date().toLocaleString()}
+                          </div>
+                        </div>
+                      `;
+                      const printWindow = window.open("", "_blank", "width=800,height=1000");
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Invoice</title>
+                            <style>
+                              @page { size: 80mm auto; margin: 0; }
+                              body { margin: 0; background: #fff; }
+                            </style>
+                          </head>
+                          <body>${printContents}</body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      setTimeout(() => {
+                        printWindow.print();
+                        printWindow.close();
+                      }, 500);
+                    }}
+                  >
+                    🖨️ Print Invoice
+                  </button>
+
+                  <button
+                    className="btn btn-outline-danger w-100"
+                    onClick={() => setInvoiceData(null)}
+                  >
+                    ❌ Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -5,16 +5,21 @@ import { FaExclamationTriangle, FaSyncAlt, FaTrash, FaClock } from "react-icons/
 function AlertsPage() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("all"); // ✅ added missing filter state
 
   // ✅ Fetch alerts from backend
   const fetchAlerts = async () => {
     setLoading(true);
     try {
       const res = await axios.get("http://localhost:5000/api/alerts");
-      setAlerts(res.data.alerts || []);
+      console.log("✅ Alerts data:", res.data);
+      if (res.data && Array.isArray(res.data.alerts)) {
+        setAlerts(res.data.alerts);
+      } else {
+        setAlerts([]);
+      }
     } catch (err) {
-      console.error("Failed to fetch alerts:", err);
+      console.error("❌ Failed to load alerts:", err);
     } finally {
       setLoading(false);
     }
@@ -22,6 +27,20 @@ function AlertsPage() {
 
   useEffect(() => {
     fetchAlerts();
+  }, []);
+
+  // Listen for global alerts updates so page refreshes automatically
+  useEffect(() => {
+    const handler = (e) => {
+      try {
+        // If a detail is provided we can optionally use it, but always refresh to be safe
+        fetchAlerts();
+      } catch (err) {
+        console.warn("alertsUpdated handler failed:", err);
+      }
+    };
+    window.addEventListener("alertsUpdated", handler);
+    return () => window.removeEventListener("alertsUpdated", handler);
   }, []);
 
   // ✅ Delete alert locally (frontend only)
@@ -39,15 +58,15 @@ function AlertsPage() {
 
   // ✅ Color by alert type
   const getAlertColor = (type) => {
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case "out of stock":
         return "#e74c3c";
       case "low stock":
         return "#f39c12";
-      case "expiring soon":
-        return "#f1c40f";
       case "expired":
         return "#c0392b";
+      case "expiring soon":
+        return "#f1c40f";
       default:
         return "#95a5a6";
     }
@@ -141,7 +160,7 @@ function AlertsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {filteredAlerts.map((alert, idx) => (
             <div
-              key={alert.productId || idx}
+              key={idx}
               style={{
                 background: "#fff",
                 border: `2px solid ${getAlertColor(alert.type)}`,
@@ -155,7 +174,7 @@ function AlertsPage() {
               }}
             >
               <div style={{ flex: 1 }}>
-                <p
+                <h5
                   style={{
                     margin: 0,
                     fontWeight: "700",
@@ -164,14 +183,9 @@ function AlertsPage() {
                   }}
                 >
                   {alert.type}
-                </p>
-                <p
-                  style={{
-                    margin: "6px 0",
-                    color: "#1e293b",
-                    fontWeight: "500",
-                  }}
-                >
+                </h5>
+
+                <p style={{ margin: "6px 0", color: "#1e293b" }}>
                   {alert.message}
                 </p>
 

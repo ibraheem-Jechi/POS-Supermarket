@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaBars } from "react-icons/fa";
+import { FaBars } from "react-icons/fa"; // ✅ استيراد وحيد وصحيح
 
 // Components
 import Sidebar from "./components/Sidebar";
@@ -40,6 +40,7 @@ function App() {
     else localStorage.removeItem("user");
   }, [user]);
 
+  // Save page in storage
   useEffect(() => {
     if (page) localStorage.setItem("page", page);
   }, [page]);
@@ -104,7 +105,7 @@ function App() {
           textAlign: "center",
           fontWeight: "700",
           fontSize: "22px",
-          borderRadius: "0 0 12px 12px",
+          borderRadius: "0 0 px 12px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
         }}
       >
@@ -138,7 +139,7 @@ function App() {
           {page === "monthlyreport" && <MonthlyReport user={user} />}
           {page === "yearlyreport" && <YearlyReport user={user} />}
           {page === "reports" && <Reports user={user} />}
-          {page === "dailySummary" && <DailySummary user={user} />}
+          {page === "dailysummary" && <DailySummary user={user} />}
           {page === "tops" && <Tops />}
           {page === "expenses" && <Expenses />}
           {page === "wins" && <Wins />}
