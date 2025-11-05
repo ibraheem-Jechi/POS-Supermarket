@@ -3,6 +3,8 @@ import axios from "axios";
 import api from "../../api/client";
 import "bootstrap/dist/css/bootstrap.min.css";
 
+
+
 export default function POSPage({ user }) {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState({});
@@ -121,6 +123,10 @@ export default function POSPage({ user }) {
       alert("⚠️ You already have an active shift.");
       return;
     }
+    if (!user || !user.username) {
+      alert("⚠️ You must be logged in to start a shift.");
+      return;
+    }
 
     const confirmStart = window.confirm(`🟢 Start your shift as ${user.username}?`);
     if (!confirmStart) return;
@@ -132,8 +138,10 @@ export default function POSPage({ user }) {
       setActiveShift(res.data);
       localStorage.setItem("activeShift", JSON.stringify(res.data));
       alert(`✅ Shift started at ${new Date(res.data.startTime).toLocaleTimeString()}`);
-    } catch {
-      alert("❌ Could not start shift");
+    } catch (err) {
+      const serverMsg = err?.response?.data?.message || err?.message || "Could not start shift";
+      console.error("Start shift error:", err);
+      alert(`❌ Could not start shift: ${serverMsg}`);
     }
   };
 
@@ -156,8 +164,10 @@ export default function POSPage({ user }) {
       setActiveShift(null);
       localStorage.removeItem("activeShift");
       alert(`✅ Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
-    } catch {
-      alert("❌ Could not end shift");
+    } catch (err) {
+      console.error("End shift error:", err);
+      const serverMsg = err?.response?.data?.message || err?.message || "Could not end shift";
+      alert(`❌ Could not end shift: ${serverMsg}`);
     }
   };
 
