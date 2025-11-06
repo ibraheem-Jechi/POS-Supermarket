@@ -3,8 +3,6 @@ import axios from "axios";
 import api from "../../api/client";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-
-
 export default function POSPage({ user }) {
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState({});
@@ -15,6 +13,7 @@ export default function POSPage({ user }) {
   const [barcode, setBarcode] = useState("");
   const [invoiceData, setInvoiceData] = useState(null);
   const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("Cash"); // ✅ Default payment method
 
   const [activeShift, setActiveShift] = useState(() => {
     const cached = localStorage.getItem("activeShift");
@@ -29,7 +28,9 @@ export default function POSPage({ user }) {
       .then((res) => setProducts(res.data))
       .catch((e) => {
         console.error("Failed to load products:", e);
-        setErr(e.response?.data?.message || e.message || "Failed to load products");
+        setErr(
+          e.response?.data?.message || e.message || "Failed to load products"
+        );
       })
       .finally(() => setLoading(false));
   }, []);
@@ -39,7 +40,11 @@ export default function POSPage({ user }) {
     const cashier = user?.username;
     if (!cashier) return;
     axios
-      .get(`http://localhost:5000/api/shifts/active?cashier=${encodeURIComponent(cashier)}`)
+      .get(
+        `http://localhost:5000/api/shifts/active?cashier=${encodeURIComponent(
+          cashier
+        )}`
+      )
       .then((res) => {
         if (res.data) {
           setActiveShift(res.data);
@@ -184,6 +189,7 @@ export default function POSPage({ user }) {
         total,
         cashier: user?.username || "unknown",
         shiftId: activeShift?._id || null,
+        paymentMethod, // ✅ include payment method
       };
 
       const saleRes = await axios.post("http://localhost:5000/api/sales", cartData);
@@ -196,49 +202,77 @@ export default function POSPage({ user }) {
         total,
         cashier: user?.username,
         date: new Date().toLocaleString(),
+        paymentMethod,
       });
 
       setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
-
-      // Decrease stock for sold items
-      try {
-        const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-          items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
-        });
-
-        if (stockRes.data.errors?.length) {
-          alert(stockRes.data.errors.join("\n"));
-        }
-        if (stockRes.data.warnings?.length) {
-          alert(stockRes.data.warnings.join("\n"));
-        }
-
-        // Refresh product list so quantities show updated values
-        try {
-          const prodRes = await api.get("/products");
-          setProducts(prodRes.data);
-        } catch (e) {
-          console.warn("Could not refresh products after sale:", e);
-        }
-
-        // Also fetch alerts immediately and broadcast so Sidebar updates badge
-        try {
-          const alertsRes = await api.get("/alerts");
-          const count = alertsRes.data?.count ?? (Array.isArray(alertsRes.data) ? alertsRes.data.length : 0);
-          window.dispatchEvent(new CustomEvent("alertsUpdated", { detail: { count } }));
-        } catch (e) {
-          console.warn("Could not refresh alerts after sale:", e);
-        }
-      } catch (e) {
-        console.warn("Failed to update stock:", e?.response?.data || e.message || e);
-      }
-
       alert(`✅ Sale complete! Invoice #${saleRes.data.invoiceNumber}`);
       setCart({});
     } catch (err) {
       console.error("❌ Sale failed:", err);
       alert("❌ Sale failed");
     }
+  };
+
+  // ✅ Thermal printer layout
+  const handlePrint = () => {
+    if (!invoiceData) return;
+    const printWindow = window.open("", "", "width=400,height=600");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Receipt</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; width: 80mm; }
+            .center { text-align: center; }
+            hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            td { padding: 2px 0; }
+            .bold { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="center bold">🏪 Supermarket POS</div>
+          <div class="center">Invoice #${invoiceData.invoiceNumber}</div>
+          <div class="center">Cashier: ${invoiceData.cashier}</div>
+          <div class="center">${invoiceData.date}</div>
+          <div class="center">Payment: ${invoiceData.paymentMethod}</div>
+          <hr>
+          <table>
+            ${invoiceData.items
+              .map(
+                (i) => `
+                <tr>
+                  <td>${i.name} × ${i.qty}</td>
+                  <td style="text-align:right;">$${(i.price * i.qty).toFixed(2)}</td>
+                </tr>`
+              )
+              .join("")}
+          </table>
+          <hr>
+          <table>
+            <tr><td>Subtotal:</td><td style="text-align:right;">$${invoiceData.subtotal.toFixed(2)}</td></tr>
+            <tr><td>Tax (11%):</td><td style="text-align:right;">$${invoiceData.tax.toFixed(2)}</td></tr>
+            <tr><td class="bold">Total:</td><td style="text-align:right;" class="bold">$${invoiceData.total.toFixed(2)}</td></tr>
+          </table>
+          <hr>
+          <div class="center">🎁 Loyalty Points: ${loyaltyPointsEarned}</div>
+          <hr>
+          <div class="center">
+            Thank you for shopping!<br/>
+            ${new Date().toLocaleString()}
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const onBarcodeEnter = (e) => {
@@ -347,23 +381,14 @@ export default function POSPage({ user }) {
                       <div className="text-muted">${i.price.toFixed(2)} each</div>
                     </div>
                     <div className="d-flex align-items-center gap-1">
-                      <button
-                        onClick={() => decQty(i.productId)}
-                        className="btn btn-outline-secondary btn-sm"
-                      >
+                      <button onClick={() => decQty(i.productId)} className="btn btn-outline-secondary btn-sm">
                         -
                       </button>
                       <span>{i.qty}</span>
-                      <button
-                        onClick={() => incQty(i.productId)}
-                        className="btn btn-outline-secondary btn-sm"
-                      >
+                      <button onClick={() => incQty(i.productId)} className="btn btn-outline-secondary btn-sm">
                         +
                       </button>
-                      <button
-                        onClick={() => removeItem(i.productId)}
-                        className="btn btn-link text-danger p-0 ms-2"
-                      >
+                      <button onClick={() => removeItem(i.productId)} className="btn btn-link text-danger p-0 ms-2">
                         remove
                       </button>
                     </div>
@@ -371,6 +396,19 @@ export default function POSPage({ user }) {
                 ))}
               </ul>
             )}
+
+            {/* ✅ Payment method selector */}
+            <div className="mb-3">
+              <label className="form-label fw-bold">Payment Method</label>
+              <select
+                className="form-select"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="Cash">Cash 💵</option>
+                <option value="Credit">Credit 💳</option>
+              </select>
+            </div>
 
             <div className="mb-3">
               <div className="d-flex justify-content-between">
@@ -401,6 +439,8 @@ export default function POSPage({ user }) {
                   <strong>Cashier:</strong> {invoiceData.cashier}
                   <br />
                   <strong>Date:</strong> {invoiceData.date}
+                  <br />
+                  <strong>Payment:</strong> {invoiceData.paymentMethod}
                 </p>
                 <hr />
                 <ul className="list-group mb-3">
@@ -435,47 +475,9 @@ export default function POSPage({ user }) {
 
                 {/* ✅ Print + Close Buttons */}
                 <div className="d-flex flex-column gap-2">
-                  <button
-                    className="btn btn-success w-100"
-                    onClick={() => {
-                      const printContents = `
-                        <div style="font-family:'Courier New',monospace;width:80mm;padding:8px;">
-                          <h2 style="text-align:center;margin:0;">🏪 Supermarket</h2>
-                          <hr style="border:none;border-top:1px dashed #000;margin:5px 0;">
-                          ${document
-                            .getElementById("invoice")
-                            .innerHTML.replace("🖨️ Print Invoice", "")
-                            .replace("❌ Close", "")}
-                          <hr style="border:none;border-top:1px dashed #000;margin:5px 0;">
-                          <div style="text-align:center;font-size:11px;">
-                            Thank you for shopping!<br/>${new Date().toLocaleString()}
-                          </div>
-                        </div>
-                      `;
-                      const printWindow = window.open("", "_blank", "width=800,height=1000");
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>Invoice</title>
-                            <style>
-                              @page { size: 80mm auto; margin: 0; }
-                              body { margin: 0; background: #fff; }
-                            </style>
-                          </head>
-                          <body>${printContents}</body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      setTimeout(() => {
-                        printWindow.print();
-                        printWindow.close();
-                      }, 500);
-                    }}
-                  >
+                  <button className="btn btn-success w-100" onClick={handlePrint}>
                     🖨️ Print Invoice
                   </button>
-
                   <button
                     className="btn btn-outline-danger w-100"
                     onClick={() => setInvoiceData(null)}
