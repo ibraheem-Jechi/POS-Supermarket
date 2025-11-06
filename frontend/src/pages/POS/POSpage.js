@@ -11,10 +11,10 @@ export default function POSPage({ user }) {
   const [err, setErr] = useState("");
   const [category, setCategory] = useState("All");
   const [barcode, setBarcode] = useState("");
-  const [invoiceNumber, setInvoiceNumber] = useState(null);
+  const [invoiceData, setInvoiceData] = useState(null);
   const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("Cash"); // ✅ Default payment method
 
-  // ✅ Shift state
   const [activeShift, setActiveShift] = useState(() => {
     const cached = localStorage.getItem("activeShift");
     return cached ? JSON.parse(cached) : null;
@@ -28,18 +28,23 @@ export default function POSPage({ user }) {
       .then((res) => setProducts(res.data))
       .catch((e) => {
         console.error("Failed to load products:", e);
-        const msg = e.response?.data?.message || e.message || "Failed to load products";
-        setErr(msg);
+        setErr(
+          e.response?.data?.message || e.message || "Failed to load products"
+        );
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // ✅ Load current active shift on mount
+  // ✅ Load current active shift
   useEffect(() => {
     const cashier = user?.username;
     if (!cashier) return;
     axios
-      .get(`http://localhost:5000/api/shifts/active?cashier=${encodeURIComponent(cashier)}`)
+      .get(
+        `http://localhost:5000/api/shifts/active?cashier=${encodeURIComponent(
+          cashier
+        )}`
+      )
       .then((res) => {
         if (res.data) {
           setActiveShift(res.data);
@@ -115,10 +120,14 @@ export default function POSPage({ user }) {
   const tax = +(subtotal * taxRate).toFixed(2);
   const total = +(subtotal + tax).toFixed(2);
 
-  // ✅ Start Shift
+  // ✅ Shift control
   const startShift = async () => {
     if (activeShift) {
       alert("⚠️ You already have an active shift.");
+      return;
+    }
+    if (!user || !user.username) {
+      alert("⚠️ You must be logged in to start a shift.");
       return;
     }
 
@@ -132,21 +141,16 @@ export default function POSPage({ user }) {
       setActiveShift(res.data);
       localStorage.setItem("activeShift", JSON.stringify(res.data));
       alert(`✅ Shift started at ${new Date(res.data.startTime).toLocaleTimeString()}`);
-    } catch {
-      alert("❌ Could not start shift");
+    } catch (err) {
+      const serverMsg = err?.response?.data?.message || err?.message || "Could not start shift";
+      console.error("Start shift error:", err);
+      alert(`❌ Could not start shift: ${serverMsg}`);
     }
   };
 
-  // ✅ End Shift
   const endShift = async () => {
-    if (!activeShift) {
-      alert("⚠️ You have no active shift to end.");
-      return;
-    }
-
-    const confirmEnd = window.confirm(
-      `🔴 End shift for ${user.username}?\nAll future sales will be locked until a new shift starts.`
-    );
+    if (!activeShift) return alert("⚠️ You have no active shift to end.");
+    const confirmEnd = window.confirm(`🔴 End shift for ${user.username}?`);
     if (!confirmEnd) return;
 
     try {
@@ -156,76 +160,119 @@ export default function POSPage({ user }) {
       setActiveShift(null);
       localStorage.removeItem("activeShift");
       alert(`✅ Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
-    } catch {
-      alert("❌ Could not end shift");
+    } catch (err) {
+      console.error("End shift error:", err);
+      const serverMsg = err?.response?.data?.message || err?.message || "Could not end shift";
+      alert(`❌ Could not end shift: ${serverMsg}`);
     }
   };
 
-  // ✅ Checkout
+  // ✅ Complete sale
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
-
     if (!activeShift) {
-      const proceed = window.confirm(
-        "No active shift. Start one before selling?\n\nPress OK to start now."
-      );
+      const proceed = window.confirm("No active shift. Start one before selling?");
       if (proceed) await startShift();
       else return;
     }
 
     try {
       const cartData = {
-        lines: lines.map((i) => {
-          const product = products.find((p) => p._id === i.productId);
-          return {
-            productId: i.productId,
-            name: i.name,
-            price: i.price,
-            qty: i.qty,
-            productCategory: product ? product.productCategory : "Uncategorized",
-          };
-        }),
+        lines: lines.map((i) => ({
+          productId: i.productId,
+          name: i.name,
+          price: i.price,
+          qty: i.qty,
+        })),
         subtotal,
         tax,
         total,
         cashier: user?.username || "unknown",
         shiftId: activeShift?._id || null,
+        paymentMethod, // ✅ include payment method
       };
 
-      // Save invoice
-      const cartRes = await axios.post("http://localhost:5000/api/carts", cartData);
+      const saleRes = await axios.post("http://localhost:5000/api/sales", cartData);
 
-      // Save sale
-      const saleRes = await axios.post("http://localhost:5000/api/sales", {
-        ...cartData,
-        cartId: cartRes.data?._id || null,
+      setInvoiceData({
+        invoiceNumber: saleRes.data.invoiceNumber,
+        items: lines,
+        subtotal,
+        tax,
+        total,
+        cashier: user?.username,
+        date: new Date().toLocaleString(),
+        paymentMethod,
       });
 
-      // Decrease stock
-      const stockRes = await axios.post("http://localhost:5000/api/products/decrease-stock", {
-        items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
-      });
-
-      if (stockRes.data.errors?.length) return alert(stockRes.data.errors.join("\n"));
-      if (stockRes.data.warnings?.length) alert(stockRes.data.warnings.join("\n"));
-
-      if (saleRes.data?.invoiceNumber) {
-        setInvoiceNumber(saleRes.data.invoiceNumber);
-        setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
-        alert(
-          `✅ Payment complete! Invoice #${saleRes.data.invoiceNumber}\n🎁 Loyalty Points: ${
-            saleRes.data.loyaltyPoints || 0
-          }`
-        );
-      } else {
-        alert("✅ Payment complete!");
-      }
-
+      setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
+      alert(`✅ Sale complete! Invoice #${saleRes.data.invoiceNumber}`);
       setCart({});
     } catch (err) {
-      console.error("❌ Failed to complete sale:", err.response?.data || err.message);
+      console.error("❌ Sale failed:", err);
       alert("❌ Sale failed");
     }
+  };
+
+  // ✅ Thermal printer layout
+  const handlePrint = () => {
+    if (!invoiceData) return;
+    const printWindow = window.open("", "", "width=400,height=600");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Receipt</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; width: 80mm; }
+            .center { text-align: center; }
+            hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            td { padding: 2px 0; }
+            .bold { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="center bold">🏪 Supermarket POS</div>
+          <div class="center">Invoice #${invoiceData.invoiceNumber}</div>
+          <div class="center">Cashier: ${invoiceData.cashier}</div>
+          <div class="center">${invoiceData.date}</div>
+          <div class="center">Payment: ${invoiceData.paymentMethod}</div>
+          <hr>
+          <table>
+            ${invoiceData.items
+              .map(
+                (i) => `
+                <tr>
+                  <td>${i.name} × ${i.qty}</td>
+                  <td style="text-align:right;">$${(i.price * i.qty).toFixed(2)}</td>
+                </tr>`
+              )
+              .join("")}
+          </table>
+          <hr>
+          <table>
+            <tr><td>Subtotal:</td><td style="text-align:right;">$${invoiceData.subtotal.toFixed(2)}</td></tr>
+            <tr><td>Tax (11%):</td><td style="text-align:right;">$${invoiceData.tax.toFixed(2)}</td></tr>
+            <tr><td class="bold">Total:</td><td style="text-align:right;" class="bold">$${invoiceData.total.toFixed(2)}</td></tr>
+          </table>
+          <hr>
+          <div class="center">🎁 Loyalty Points: ${loyaltyPointsEarned}</div>
+          <hr>
+          <div class="center">
+            Thank you for shopping!<br/>
+            ${new Date().toLocaleString()}
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const onBarcodeEnter = (e) => {
@@ -238,28 +285,19 @@ export default function POSPage({ user }) {
 
   return (
     <div className="container-fluid bg-light min-vh-100 p-4">
-      {/* ✅ Shift controls */}
+      {/* ✅ Shift Controls */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="d-flex gap-2">
-          <button
-            className="btn btn-success"
-            onClick={startShift}
-            disabled={!!activeShift}
-          >
+          <button className="btn btn-success" onClick={startShift} disabled={!!activeShift}>
             ▶ Start Shift
           </button>
-          <button
-            className="btn btn-danger"
-            onClick={endShift}
-            disabled={!activeShift}
-          >
+          <button className="btn btn-danger" onClick={endShift} disabled={!activeShift}>
             ■ End Shift
           </button>
         </div>
-
         {activeShift ? (
           <div className="alert alert-primary py-1 px-2 mb-0">
-            <strong>Active Shift:</strong> {user?.username} &middot;{" "}
+            <strong>Active Shift:</strong> {user?.username} ·{" "}
             {new Date(activeShift.startTime).toLocaleTimeString()}
           </div>
         ) : (
@@ -268,16 +306,15 @@ export default function POSPage({ user }) {
       </div>
 
       <div className="row">
-        {/* Products */}
+        {/* === Products === */}
         <div className="col-md-8 mb-4">
           <div className="card shadow-sm p-3 h-100">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search products or categories…"
+              placeholder="Search products..."
               className="form-control mb-3"
             />
-
             <div className="mb-3 d-flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
@@ -320,22 +357,15 @@ export default function POSPage({ user }) {
                     </button>
                   </div>
                 ))}
-                {!filtered.length && <div className="text-muted mt-2">No products found</div>}
               </div>
             )}
           </div>
         </div>
 
-        {/* Cart */}
+        {/* === Cart === */}
         <div className="col-md-4 mb-4">
           <div className="card shadow-sm p-3 sticky-top">
             <h5 className="mb-3">Cart</h5>
-
-            {invoiceNumber && (
-              <div className="alert alert-info p-2 mb-3">
-                <strong>Invoice #:</strong> {invoiceNumber}
-              </div>
-            )}
 
             {!lines.length ? (
               <div className="text-muted">No items yet</div>
@@ -351,24 +381,14 @@ export default function POSPage({ user }) {
                       <div className="text-muted">${i.price.toFixed(2)} each</div>
                     </div>
                     <div className="d-flex align-items-center gap-1">
-                      <button
-                        onClick={() => decQty(i.productId)}
-                        className="btn btn-outline-secondary btn-sm"
-                      >
+                      <button onClick={() => decQty(i.productId)} className="btn btn-outline-secondary btn-sm">
                         -
                       </button>
                       <span>{i.qty}</span>
-                      <button
-                        onClick={() => incQty(i.productId)}
-                        className="btn btn-outline-secondary btn-sm"
-                      >
+                      <button onClick={() => incQty(i.productId)} className="btn btn-outline-secondary btn-sm">
                         +
                       </button>
-                      <span className="fw-bold ms-2">${(i.price * i.qty).toFixed(2)}</span>
-                      <button
-                        onClick={() => removeItem(i.productId)}
-                        className="btn btn-link text-danger p-0 ms-2"
-                      >
+                      <button onClick={() => removeItem(i.productId)} className="btn btn-link text-danger p-0 ms-2">
                         remove
                       </button>
                     </div>
@@ -376,6 +396,19 @@ export default function POSPage({ user }) {
                 ))}
               </ul>
             )}
+
+            {/* ✅ Payment method selector */}
+            <div className="mb-3">
+              <label className="form-label fw-bold">Payment Method</label>
+              <select
+                className="form-select"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
+                <option value="Cash">Cash 💵</option>
+                <option value="Credit">Credit 💳</option>
+              </select>
+            </div>
 
             <div className="mb-3">
               <div className="d-flex justify-content-between">
@@ -390,16 +423,70 @@ export default function POSPage({ user }) {
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
-              {invoiceNumber && (
-                <div className="mt-2 text-success">
-                  🎁 Loyalty Points Earned: {loyaltyPointsEarned}
-                </div>
-              )}
             </div>
 
-            <button onClick={completeSale} className="btn btn-primary w-100">
+            <button onClick={completeSale} className="btn btn-primary w-100 mb-2">
               Complete Sale
             </button>
+
+            {/* ✅ Invoice */}
+            {invoiceData && (
+              <div id="invoice" className="card p-3 mt-3 shadow-sm">
+                <h5 className="text-center mb-3">Supermarket Invoice</h5>
+                <p>
+                  <strong>Invoice #:</strong> {invoiceData.invoiceNumber}
+                  <br />
+                  <strong>Cashier:</strong> {invoiceData.cashier}
+                  <br />
+                  <strong>Date:</strong> {invoiceData.date}
+                  <br />
+                  <strong>Payment:</strong> {invoiceData.paymentMethod}
+                </p>
+                <hr />
+                <ul className="list-group mb-3">
+                  {invoiceData.items.map((i) => (
+                    <li
+                      key={i.productId}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      <div>
+                        {i.name} × {i.qty}
+                      </div>
+                      <div>${(i.price * i.qty).toFixed(2)}</div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="d-flex justify-content-between">
+                  <strong>Subtotal:</strong>
+                  <span>${invoiceData.subtotal.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <strong>Tax:</strong>
+                  <span>${invoiceData.tax.toFixed(2)}</span>
+                </div>
+                <div className="d-flex justify-content-between fs-5 mt-2">
+                  <strong>Total:</strong>
+                  <strong>${invoiceData.total.toFixed(2)}</strong>
+                </div>
+                <hr />
+                <p className="text-center text-success mb-2">
+                  🎁 Loyalty Points: {loyaltyPointsEarned}
+                </p>
+
+                {/* ✅ Print + Close Buttons */}
+                <div className="d-flex flex-column gap-2">
+                  <button className="btn btn-success w-100" onClick={handlePrint}>
+                    🖨️ Print Invoice
+                  </button>
+                  <button
+                    className="btn btn-outline-danger w-100"
+                    onClick={() => setInvoiceData(null)}
+                  >
+                    ❌ Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

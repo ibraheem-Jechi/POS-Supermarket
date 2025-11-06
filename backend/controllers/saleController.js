@@ -10,28 +10,47 @@ exports.createSale = async (req, res) => {
     }
 
     let totalAmount = 0;
+    const updatedProducts = [];
 
-    // Update product stock and calculate total
+    // ✅ Update product quantity and calculate total
     for (let item of products) {
       const prod = await Product.findById(item.product);
-      if (!prod || prod.stock < item.quantity) {
-        return res.status(400).json({ error: `Product ${item.name} out of stock` });
+      if (!prod) {
+        return res.status(400).json({ error: `Product not found: ${item.name}` });
       }
 
-      prod.stock -= item.quantity;
+      // ✅ Use "quantity" instead of "stock"
+      if (prod.quantity < item.quantity) {
+        return res
+          .status(400)
+          .json({ error: `Not enough stock for ${prod.productName}` });
+      }
+
+      prod.quantity -= item.quantity;
       await prod.save();
 
       totalAmount += item.price * item.quantity;
+      updatedProducts.push({
+        name: prod.productName,
+        quantitySold: item.quantity,
+        remainingStock: prod.quantity,
+      });
     }
 
+    // ✅ Create sale record
     const sale = await Sale.create({
       products,
       totalAmount,
+      date: new Date(),
     });
 
-    res.status(201).json(sale);
+    res.status(201).json({
+      message: 'Sale recorded successfully and stock updated',
+      sale,
+      updatedProducts,
+    });
   } catch (err) {
-    console.error('Sale Error:', err);
+    console.error('❌ Sale Error:', err);
     res.status(500).json({ error: 'Server error while processing sale' });
   }
 };

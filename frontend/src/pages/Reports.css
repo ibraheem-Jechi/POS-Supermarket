@@ -1,26 +1,102 @@
-.reports-container {
-  padding: 20px;
-  background: #f9fafc;
-  border-radius: 8px;
+:root {
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --brand: #2563eb;
+  --brand-hover: #1d4ed8;
+  --border: #e2e8f0;
 }
 
+/* Container */
+.reports-wrapper {
+  padding: 30px;
+  background: var(--bg);
+  min-height: 100vh;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* Header */
+.reports-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.reports-header h2 {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+.reports-header .subtitle {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* Tabs */
 .tabs {
   display: flex;
-  gap: 10px;
   justify-content: center;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 25px;
 }
 
 .tab {
-  background: #ecf0f1;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: var(--ink);
+  padding: 10px 24px;
+  border-radius: 8px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+.tab:hover {
+  background: var(--brand-hover);
+  color: #fff;
+  border-color: var(--brand-hover);
+  transform: translateY(-1px);
 }
 
 .tab.active {
-  background: #3498db;
+  background: var(--brand);
   color: #fff;
+  border-color: var(--brand);
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+/* Report Content */
+.report-content {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  animation: fadeIn 0.3s ease;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Smooth fade animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .tab {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  .reports-wrapper {
+    padding: 16px;
+  }
 }

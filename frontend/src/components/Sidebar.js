@@ -38,13 +38,32 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
   // === Initial load + periodic refresh ===
   useEffect(() => {
     fetchAlertsCount();
+    // Listen for manual updates triggered elsewhere (e.g. after a sale)
+    const onAlertsUpdated = (e) => {
+      try {
+        const count = e?.detail?.count;
+        if (typeof count === "number") setAlertCount(count);
+        else fetchAlertsCount();
+      } catch (err) {
+        fetchAlertsCount();
+      }
+    };
+    window.addEventListener("alertsUpdated", onAlertsUpdated);
     const id = setInterval(fetchAlertsCount, 30000);
     return () => clearInterval(id);
+    // cleanup listener
+    // note: return only cleans interval; also remove listener on unmount
+    // so we remove it here via a separate cleanup
   }, []);
 
   useEffect(() => {
-    console.log("Alert count updated:", alertCount);
-  }, [alertCount]);
+    const handler = (e) => {
+      const count = e?.detail?.count;
+      if (typeof count === "number") setAlertCount(count);
+    };
+    window.addEventListener("alertsUpdated", handler);
+    return () => window.removeEventListener("alertsUpdated", handler);
+  }, []);
 
   // === Sidebar UI ===
   return (
@@ -116,24 +135,18 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         </>
       )}
 
-      <button className="nav-button" onClick={() => setPage("salesHistory")}>
+      <button className="nav-button" onClick={() => setPage("saleshistory")}>
         <FaHistory />
         <span>Sales History</span>
       </button>
 
-      {/* Sidebar.js */}
-<button className="nav-button" onClick={() => setPage('dailySummary')}>
-  📖Main Reading
-</button>
+      <button className="nav-button" onClick={() => setPage("dailysummary")}>
+        📖 Main Reading
+      </button>
 
-      
-      <button className="nav-button" onClick={() => setPage('reports')}>
-  📑 Reports
-</button>
-
-
-   
-     
+      <button className="nav-button" onClick={() => setPage("reports")}>
+        📑 Reports
+      </button>
 
       {/* === Alerts Button (with badge) === */}
       <button className="nav-button" onClick={() => setPage("alerts")}>
@@ -146,36 +159,33 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         )}
       </button>
 
-    <button
-  className={`logout-btn ${localStorage.getItem("activeShift") ? "disabled" : ""}`}
-  onClick={() => {
-    const activeShift = JSON.parse(localStorage.getItem("activeShift") || "null");
+      {/* === Logout === */}
+      <button
+        className={`logout-btn ${localStorage.getItem("activeShift") ? "disabled" : ""}`}
+        onClick={() => {
+          const activeShift = JSON.parse(localStorage.getItem("activeShift") || "null");
 
-    // 🚫 Prevent logout while shift active
-    if (activeShift) {
-      alert(
-        `🚫 You cannot log out while a shift is active.\n\nCashier: ${activeShift.cashier}\nStarted: ${new Date(
-          activeShift.startTime
-        ).toLocaleString()}\n\nPlease end your shift first.`
-      );
-      return;
-    }
+          if (activeShift) {
+            alert(
+              `🚫 You cannot log out while a shift is active.\n\nCashier: ${activeShift.cashier}\nStarted: ${new Date(
+                activeShift.startTime
+              ).toLocaleString()}\n\nPlease end your shift first.`
+            );
+            return;
+          }
 
-    // ✅ Confirm logout
-    const confirmLogout = window.confirm("Are you sure you want to log out?");
-    if (!confirmLogout) return;
+          const confirmLogout = window.confirm("Are you sure you want to log out?");
+          if (!confirmLogout) return;
 
-    localStorage.removeItem("user");
-    localStorage.removeItem("page");
-    localStorage.removeItem("activeShift");
-    setUser(null);
-    setPage("");
-  }}
->
-  <FaSignOutAlt /> Logout
-</button>
-
-
+          localStorage.removeItem("user");
+          localStorage.removeItem("page");
+          localStorage.removeItem("activeShift");
+          setUser(null);
+          setPage("");
+        }}
+      >
+        <FaSignOutAlt /> Logout
+      </button>
     </div>
   );
 }

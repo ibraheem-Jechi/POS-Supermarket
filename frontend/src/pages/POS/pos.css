@@ -8,6 +8,7 @@
   --border: #e5e7eb;
 }
 
+/* === Layout === */
 .pos {
   display: grid;
   grid-template-columns: 1fr 360px;
@@ -19,7 +20,7 @@
   color: var(--ink);
 }
 
-/* Products panel */
+/* === Products panel === */
 .pos__products {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -49,7 +50,15 @@
   padding: 6px 10px;
   border-radius: 999px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
+
+.chip:hover {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-color: var(--brand);
+}
+
 .chip--active {
   background: var(--brand);
   color: var(--brand-ink);
@@ -71,19 +80,23 @@
   transition: transform 0.1s ease, box-shadow 0.1s ease;
   background: var(--panel);
 }
+
 .pos__card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
+
 .pos__card-name {
   font-weight: 600;
   margin-bottom: 8px;
 }
+
 .pos__card-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .pill {
   background: #f1f5f9;
   color: #475569;
@@ -91,9 +104,12 @@
   border-radius: 999px;
   font-size: 12px;
 }
-.price { font-weight: 700; }
 
-/* Cart panel */
+.price {
+  font-weight: 700;
+}
+
+/* === Cart panel === */
 .pos__cart {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -108,6 +124,7 @@
   padding: 0;
   margin: 0;
 }
+
 .cart-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -115,6 +132,7 @@
   padding: 10px 0;
   border-bottom: 1px dashed var(--border);
 }
+
 .cart-info .cart-name {
   font-weight: 600;
 }
@@ -125,22 +143,32 @@
   align-items: center;
   gap: 6px;
 }
+
 .cart-controls button {
   border: 1px solid var(--border);
   background: #fff;
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
+
+.cart-controls button:hover {
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+
 .cart-controls .link {
   background: transparent;
   border: none;
   color: var(--brand);
   cursor: pointer;
 }
+
 .cart-controls .danger {
   color: #dc2626;
 }
+
 .row-total {
   width: 70px;
   text-align: right;
@@ -150,11 +178,13 @@
 .pos__totals {
   margin-top: 12px;
 }
+
 .pos__totals > div {
   display: flex;
   justify-content: space-between;
   padding: 6px 0;
 }
+
 .pos__totals .total {
   font-weight: 800;
   font-size: 18px;
@@ -170,7 +200,9 @@
   border-radius: 10px;
   font-weight: 700;
   cursor: pointer;
+  transition: filter 0.2s ease;
 }
+
 .checkout:hover {
   filter: brightness(0.95);
 }
@@ -181,4 +213,88 @@
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+/* === Invoice card === */
+#invoice {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 10px;
+  font-size: 14px;
+}
+
+#invoice h5 {
+  text-align: center;
+  font-weight: bold;
+  color: var(--brand);
+  margin-bottom: 10px;
+}
+
+#invoice ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#invoice li {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed #ddd;
+  padding: 3px 0;
+}
+
+/* === Print Invoice Styling === */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #invoice,
+  #invoice * {
+    visibility: visible !important;
+  }
+
+  #invoice {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    background: white !important;
+    padding: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #000;
+    box-shadow: none;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  #invoice h5 {
+    font-size: 16px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  #invoice ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  #invoice li {
+    padding: 3px 0;
+    border-bottom: 1px dashed #ccc;
+  }
+
+  #invoice .list-group-item {
+    border: none;
+  }
+
+  body {
+    background: #fff !important;
+  }
 }
