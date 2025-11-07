@@ -20,6 +20,7 @@ import MonthlyReport from "./pages/MonthlyReport";
 import YearlyReport from "./pages/YearlyReport";
 import Reports from "./pages/Reports";
 import DailySummary from "./pages/DailySummary";
+import SuppliersPage from "./pages/SuppliersPage";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -143,6 +144,8 @@ function App() {
           {page === "tops" && <Tops />}
           {page === "expenses" && <Expenses />}
           {page === "wins" && <Wins />}
+          {page === "suppliers" && <SuppliersPage />}
+
         </main>
       </div>
     </div>

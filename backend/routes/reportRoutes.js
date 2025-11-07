@@ -227,6 +227,97 @@ router.get("/daily-summary", async (req, res) => {
 
 
 
+//Range Report
+
+router.get("/range", async (req, res) => {
+  try {
+    const { start, end } = req.query;
+
+    if (!start || !end) {
+      return res.status(400).json({ message: "Missing start or end date" });
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Fetch sales between these dates
+    const sales = await Sale.find({
+      createdAt: { $gte: startDate, $lte: endDate },
+    });
+
+    if (!sales.length) {
+      return res.json({
+        totals: { invoices: 0, subtotal: 0, tax: 0, total: 0 },
+        categories: [],
+        products: [],
+        cashiers: [],
+      });
+    }
+
+    // Totals
+    const totals = sales.reduce(
+      (acc, s) => {
+        acc.invoices++;
+        acc.subtotal += s.subtotal || 0;
+        acc.tax += s.tax || 0;
+        acc.total += s.total || 0;
+        return acc;
+      },
+      { invoices: 0, subtotal: 0, tax: 0, total: 0 }
+    );
+
+    // Categories
+    const categoriesMap = {};
+    const productsMap = {};
+    const cashiersMap = {};
+
+    for (const sale of sales) {
+      for (const item of sale.items || []) {
+        const cat = item.category || "Uncategorized";
+        categoriesMap[cat] = categoriesMap[cat] || { totalQty: 0, totalSales: 0 };
+        categoriesMap[cat].totalQty += item.quantity;
+        categoriesMap[cat].totalSales += item.total;
+
+        const prod = item.productName;
+        productsMap[prod] = productsMap[prod] || { totalQty: 0, totalSales: 0 };
+        productsMap[prod].totalQty += item.quantity;
+        productsMap[prod].totalSales += item.total;
+      }
+
+      const cashier = sale.cashier || "Unknown";
+      cashiersMap[cashier] = cashiersMap[cashier] || { invoices: 0, totalSales: 0 };
+      cashiersMap[cashier].invoices++;
+      cashiersMap[cashier].totalSales += sale.total || 0;
+    }
+
+    const categories = Object.entries(categoriesMap).map(([k, v]) => ({
+      _id: k,
+      ...v,
+    }));
+    const products = Object.entries(productsMap).map(([k, v]) => ({
+      _id: k,
+      ...v,
+    }));
+    const cashiers = Object.entries(cashiersMap).map(([k, v]) => ({
+      _id: k,
+      ...v,
+    }));
+
+    res.json({
+      totals,
+      categories,
+      products,
+      cashiers,
+      start,
+      end,
+    });
+  } catch (err) {
+    console.error("Error generating range report:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 
 module.exports = router;

@@ -11,6 +11,7 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaCog,
+  FaTruck,
 } from "react-icons/fa";
 import axios from "axios";
 
@@ -87,6 +88,12 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         <FaBoxOpen />
         <span>Products</span>
       </button>
+
+      <button className="nav-button" onClick={() => setPage("suppliers")}>
+        <FaTruck />
+  <span>Suppliers</span>
+</button>
+
 
       {user.role === "admin" && (
         <>

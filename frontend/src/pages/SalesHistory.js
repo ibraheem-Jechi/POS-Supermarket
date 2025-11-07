@@ -34,9 +34,15 @@ export default function SalesHistory() {
     try {
       const res = await fetch("http://localhost:5000/api/sales");
       const data = await res.json();
-      const sorted = data.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      );
+
+      // ✅ Sort by invoice number ascending
+      const sorted = data.sort((a, b) => {
+        const numA = Number(a.invoiceNumber) || 0;
+        const numB = Number(b.invoiceNumber) || 0;
+        if (numA !== numB) return numB - numA;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
       setSales(sorted);
       setFiltered(sorted);
     } catch (err) {
@@ -131,7 +137,7 @@ export default function SalesHistory() {
       const res = await fetch(`http://localhost:5000/api/sales/${selectedSale._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selectedSale)
+        body: JSON.stringify(selectedSale),
       });
       const data = await res.json();
       setSales((prev) => prev.map((s) => (s._id === data._id ? data : s)));
@@ -303,7 +309,6 @@ export default function SalesHistory() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
