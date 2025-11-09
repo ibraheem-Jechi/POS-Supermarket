@@ -93,6 +93,9 @@ app.use('/api/profit', profitRoutes);
 const shiftRoutes = require("./routes/shiftRoutes");
 app.use("/api/shifts", shiftRoutes);
 
+const supplierRoutes = require("./routes/supplierRoutes");
+app.use("/api/suppliers", supplierRoutes);
+
 // --------------------------
 // Optional: Patch categoryName field on startup
 // --------------------------
