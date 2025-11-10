@@ -11,14 +11,14 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaCog,
+  FaTruck,
 } from "react-icons/fa";
 import axios from "axios";
 
-function Sidebar({ user, setPage, setUser, collapsed }) {
+function Sidebar({ user, page, setPage, setUser, collapsed }) {
   const [alertCount, setAlertCount] = useState(0);
-  const [adminOpen, setAdminOpen] = useState(false); // ✅ Admin section toggle
+  const [adminOpen, setAdminOpen] = useState(false);
 
-  // === Fetch alert count from backend ===
   const fetchAlertsCount = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/alerts");
@@ -35,21 +35,20 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
     }
   };
 
-  // === Initial load + periodic refresh ===
   useEffect(() => {
     fetchAlertsCount();
-    const id = setInterval(fetchAlertsCount, 30000);
-    return () => clearInterval(id);
+    const handler = (e) => {
+      const count = e?.detail?.count;
+      if (typeof count === "number") setAlertCount(count);
+      else fetchAlertsCount();
+    };
+    window.addEventListener("alertsUpdated", handler);
+    return () => window.removeEventListener("alertsUpdated", handler);
   }, []);
 
-  useEffect(() => {
-    console.log("Alert count updated:", alertCount);
-  }, [alertCount]);
-
-  // === Sidebar UI ===
   return (
     <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
-      {/* === User Info === */}
+      {/* HEADER */}
       <div className="sidebar-header">
         <p style={{ fontWeight: 600 }}>
           👋 Hello, {user.username}
@@ -58,53 +57,55 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         </p>
       </div>
 
-      {/* === Navigation Buttons === */}
-      <button className="nav-button" onClick={() => setPage("pos")}>
+      {/* POS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "pos" ? "active" : ""}`}
+        onClick={() => setPage("pos")}
+      >
         <FaCashRegister />
         <span>POS</span>
       </button>
 
-      <button className="nav-button" onClick={() => setPage("products")}>
+      {/* PRODUCTS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "products" ? "active" : ""}`}
+        onClick={() => setPage("products")}
+      >
         <FaBoxOpen />
         <span>Products</span>
       </button>
 
-     
-
-      <button className="nav-button" onClick={() => setPage("salesHistory")}>
-        <FaHistory />
-        <span>Sales History</span>
+      {/* SUPPLIERS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "suppliers" ? "active" : ""}`}
+        onClick={() => setPage("suppliers")}
+      >
+        <FaTruck />
+        <span>Suppliers</span>
       </button>
 
-      <button className="nav-button" onClick={() => setPage("dailyReport")}>
-        <FaChartLine />
-        <span>Daily Report</span>
-      </button>
-
-      {/* === Alerts Button (with badge) === */}
-      <button className="nav-button" onClick={() => setPage("alerts")}>
-        <FaBell />
-        <span>Alerts</span>
-        {alertCount > 0 && (
-          <span className="badge" aria-label={`${alertCount} alerts`}>
-            {alertCount}
-          </span>
-        )}
-      </button>
-
-         {user.role === "admin" && (
+      {/* ADMIN ONLY */}
+      {user.role === "admin" && (
         <>
-          <button className="nav-button" onClick={() => setPage("dashboard")}>
+          {/* USER MANAGEMENT */}
+          <button
+            className={`nav-button ${page?.toLowerCase() === "dashboard" ? "active" : ""}`}
+            onClick={() => setPage("dashboard")}
+          >
             <FaChartLine />
             <span>User Management</span>
           </button>
 
-          <button className="nav-button" onClick={() => setPage("category")}>
+          {/* CATEGORIES */}
+          <button
+            className={`nav-button ${page?.toLowerCase() === "category" ? "active" : ""}`}
+            onClick={() => setPage("category")}
+          >
             <FaTags />
             <span>Categories</span>
           </button>
 
-          {/* === Collapsible Admin Section === */}
+          {/* ADMIN SUB MENU */}
           <div className="admin-section">
             <button
               className="nav-button"
@@ -124,14 +125,25 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
 
             {adminOpen && (
               <div className="admin-submenu" style={{ marginLeft: "25px" }}>
-                <button className="nav-button" onClick={() => setPage("tops")}>
-                  <span>TOPS</span>
+                <button
+                  className={`nav-button ${page?.toLowerCase() === "tops" ? "active" : ""}`}
+                  onClick={() => setPage("tops")}
+                >
+                  <span>• TOPS</span>
                 </button>
-                <button className="nav-button" onClick={() => setPage("expenses")}>
-                  <span>EXPENSES</span>
+
+                <button
+                  className={`nav-button ${page?.toLowerCase() === "expenses" ? "active" : ""}`}
+                  onClick={() => setPage("expenses")}
+                >
+                  <span>• EXPENSES</span>
                 </button>
-                <button className="nav-button" onClick={() => setPage("wins")}>
-                  <span>WINS</span>
+
+                <button
+                  className={`nav-button ${page?.toLowerCase() === "wins" ? "active" : ""}`}
+                  onClick={() => setPage("wins")}
+                >
+                  <span>• WINS</span>
                 </button>
               </div>
             )}
@@ -139,17 +151,69 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         </>
       )}
 
-      {/* === Logout === */}
+      {/* SALES HISTORY */}
       <button
-        className="logout-btn"
+        className={`nav-button ${page?.toLowerCase() === "saleshistory" ? "active" : ""}`}
+        onClick={() => setPage("saleshistory")}
+      >
+        <FaHistory />
+        <span>Sales History</span>
+      </button>
+
+      {/* MAIN READING */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "dailysummary" ? "active" : ""}`}
+        onClick={() => setPage("dailysummary")}
+      >
+        📖 Main Reading
+      </button>
+
+      {/* REPORTS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "reports" ? "active" : ""}`}
+        onClick={() => setPage("reports")}
+      >
+        📑 Reports
+      </button>
+
+      {/* ALERTS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "alerts" ? "active" : ""}`}
+        onClick={() => setPage("alerts")}
+      >
+        <FaBell />
+        <span>Alerts</span>
+        {alertCount > 0 && (
+          <span className="badge">{alertCount}</span>
+        )}
+      </button>
+
+      {/* LOGOUT */}
+      <button
+        className={`logout-btn ${localStorage.getItem("activeShift") ? "disabled" : ""}`}
         onClick={() => {
+          const activeShift = JSON.parse(localStorage.getItem("activeShift") || "null");
+
+          if (activeShift) {
+            alert(
+              `🚫 You cannot log out while a shift is active.\n\nCashier: ${activeShift.cashier}\nStarted: ${new Date(
+                activeShift.startTime
+              ).toLocaleString()}\n\nPlease end your shift first.`
+            );
+            return;
+          }
+
+          if (!window.confirm("Are you sure you want to log out?")) return;
+
+          localStorage.removeItem("user");
+          localStorage.removeItem("page");
+          localStorage.removeItem("activeShift");
           setUser(null);
           setPage("");
-          localStorage.clear();
         }}
       >
         <FaSignOutAlt />
-        <span>Logout</span>
+        Logout
       </button>
     </div>
   );

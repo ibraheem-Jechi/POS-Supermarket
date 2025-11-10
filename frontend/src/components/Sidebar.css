@@ -1,130 +1,127 @@
+/* ===== SIDEBAR BASE ===== */
 .sidebar {
   width: 220px;
-  background: linear-gradient(180deg, #3a7bd5, #00d2ff); /* deeper, vibrant gradient */
+  background: #000; /* أسود كامل */
   min-height: 100vh;
   padding: 20px;
-  box-shadow: 3px 0 15px rgba(0,0,0,0.15);
+  box-shadow: 3px 0 15px rgba(0,0,0,0.4);
   font-family: 'Segoe UI', sans-serif;
-  color: #fefefe;
-  transition: width 0.3s ease, background 0.3s ease;
+  color: #ffffff;
+  transition: width 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+/* COLLAPSED */
+.sidebar.collapsed {
+  width: 0;
+  padding: 0;
   overflow: hidden;
 }
 
-.sidebar.collapsed {
-  width: 0;
-  padding: 20px 0;
-}
-
-.sidebar h2, .sidebar p {
+/* HEADER */
+.sidebar-header {
   margin-bottom: 20px;
   white-space: nowrap;
   overflow: hidden;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-.sidebar button {
+.sidebar-header p {
+  margin: 0;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+/* ===== NAV BUTTON (بدون خلفية دائماً) ===== */
+.nav-button {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  margin-bottom: 10px;
-  background: rgba(255,255,255,0.1);
+  background: transparent !important; /* ✅ بدون خلفية نهائياً */
   border: none;
-  border-radius: 10px;
   cursor: pointer;
+  color: #cccccc;  /* نص رمادي */
   font-size: 14px;
-  color: #fff;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.sidebar button:hover {
-  background: rgba(255,255,255,0.25);
-  color: #000;
-  transform: scale(1.02);
-}
-
-.sidebar .logout-btn {
-  background: #ff6b6b; /* soft but noticeable red */
-  margin-top: 30px;
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-}
-
-.hamburger {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  font-size: 24px;
-  cursor: pointer;
-  z-index: 100;
-  color: #fefefe;
-}
-
-/* Sidebar nav buttons */
-.sidebar .nav-button {
-  position: relative; /* ensure the badge positions inside button */
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  color: inherit;
+  border-radius: 8px;
+  transition: 0.2s ease;
   text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-  border-radius: 6px;
-  transition: background 0.12s;
-  overflow: visible; /* important - badge can overflow button area */
 }
 
-.sidebar .nav-button:hover {
-  background: rgba(255,255,255,0.2);
+/* ICON SIZE */
+.nav-button svg {
+  font-size: 18px;
 }
 
-/* Badge styling */
-.sidebar .badge {
-  position: absolute;
-  right: 14px;
-  top: 8px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+/* ===== HOVER ===== */
+.nav-button:hover {
+  color: #ffffff;
+  transform: translateX(5px); /* حركة جميلة */
+}
+
+/* ===== ACTIVE ===== */
+.nav-button.active {
+  background: rgba(255, 255, 255, 0.18) !important; /* ✅ مربع رمادي فقط للصفحة النشطة */
+  color: #ffffff !important;
+  font-weight: 600;
+  transform: none !important;
+  box-shadow: 0 0 12px rgba(255,255,255,0.08); /* لمعة خفيفة */
+}
+
+/* ADMIN SUBMENU */
+.admin-submenu .nav-button {
+  padding-left: 28px; /* فرعي */
+}
+
+/* BADGE */
+.badge {
+  margin-left: auto;
   background: #ef4444;
   color: white;
+  border-radius: 50%;
+  padding: 3px 7px;
   font-size: 12px;
-  font-weight: 700;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-  z-index: 2;
+  font-weight: bold;
 }
 
-
-/* Logout button pinned to bottom */
-.sidebar .logout-btn {
+/* LOGOUT */
+.logout-btn {
   margin-top: auto;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: none;
-  background: #ff6b6b;
-  color: #fff;
+  background: #ff4b4b;
+  color: #ffffff;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.1s ease;
+  border: none;
+  transition: 0.2s ease;
 }
 
-.sidebar .logout-btn:hover {
-  background: #ff5252;
-  transform: translateX(3px);
+.logout-btn:hover {
+  background: #ff3333;
+  transform: translateX(5px);
+}
+
+/* DISABLED LOGOUT */
+.logout-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* HAMBURGER */
+.hamburger {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 9999;
+  color: #ffffff;
+  background: rgba(0,0,0,0.7);
+  padding: 6px;
+  border-radius: 6px;
 }

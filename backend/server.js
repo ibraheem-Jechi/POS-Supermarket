@@ -20,6 +20,12 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
 
+// Simple request logger to help debug 404s/misrouted requests
+app.use((req, res, next) => {
+  console.log(`--> ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // --------------------------
 // Health-check route
 // --------------------------
@@ -32,20 +38,7 @@ app.get('/', (req, res) => {
 // --------------------------
 
 // Product Routes
-const expressRouter = require('express').Router;
-const Product = require('./models/productModel'); // adjust path if needed
-const productRoutes = expressRouter();
-
-// GET all products
-productRoutes.get('/', async (req, res) => {
-  try {
-    const products = await Product.find(); // fetch all products
-    res.json(products);
-  } catch (err) {
-    console.error('Error fetching products:', err);
-    res.status(500).json({ message: 'Failed to load products' });
-  }
-});
+const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
 
 // Other existing routes
@@ -67,10 +60,49 @@ app.use('/api/reports', reportRoutes);
 const alertsRoute = require('./routes/alerts');
 app.use('/api/alerts', alertsRoute);
 
+<<<<<<< HEAD
 // ✅ New: Stats route (for top products, etc.)
 const statsRoutes = require('./routes/stats');
 app.use('/api/stats', statsRoutes);
 
+=======
+// Debug route to see all registered routes
+app.get('/api/debug/routes', (req, res) => {
+  try {
+    const routes = [];
+    app._router.stack.forEach((middleware) => {
+      if (middleware.route) {
+        routes.push({ path: middleware.route.path, methods: middleware.route.methods });
+      } else if (middleware.name === 'router' && middleware.handle && middleware.handle.stack) {
+        middleware.handle.stack.forEach((handler) => {
+          const route = handler.route;
+          if (route) routes.push({ path: route.path, methods: route.methods });
+        });
+      }
+    });
+    res.json({ routes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ NEW: Stats route (for top products etc.)
+const statsRoutes = require('./routes/stats');
+app.use('/api/stats', statsRoutes);
+
+const expenseRoutes = require('./routes/expenseRoutes');
+app.use('/api/expenses', expenseRoutes);
+
+const profitRoutes = require('./routes/profitRoutes');
+app.use('/api/profit', profitRoutes);
+
+const shiftRoutes = require("./routes/shiftRoutes");
+app.use("/api/shifts", shiftRoutes);
+
+const supplierRoutes = require("./routes/supplierRoutes");
+app.use("/api/suppliers", supplierRoutes);
+
+>>>>>>> origin/dev
 // --------------------------
 // Optional: Patch categoryName field on startup
 // --------------------------
@@ -97,8 +129,14 @@ const patchCategories = async () => {
 const PORT = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/supermarket_pos';
 
+// ✅ Improved Mongoose connection with timeout handling
 mongoose
-  .connect(MONGO)
+  .connect(MONGO, {
+    serverSelectionTimeoutMS: 30000, // ⏱️ 30s connection timeout
+    connectTimeoutMS: 30000,
+    socketTimeoutMS: 45000,
+    family: 4, // ✅ Use IPv4 to avoid DNS issues
+  })
   .then(async () => {
     console.log('✅ MongoDB connected');
 

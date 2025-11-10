@@ -1,58 +1,69 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Product = require('../models/productModel');
+const Product = require("../models/productModel");
 
 // ✅ GET /api/alerts — Returns all stock and expiry alerts
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const products = await Product.find();
     const alerts = [];
-    const today = new Date();
+    const now = new Date();
 
     products.forEach((product) => {
-      // Out of stock
+      const baseAlert = {
+        productId: product._id,
+        productName: product.productName,
+        createdAt: now.toISOString(), // ✅ Proper ISO timestamp
+      };
+
+      // ✅ Out of Stock
       if (product.quantity <= 0) {
         alerts.push({
-          type: 'Out of Stock',
+          ...baseAlert,
+          type: "Out of Stock",
           message: `${product.productName} is out of stock.`,
-          productId: product._id,
         });
-      } 
-      // Low stock
+      }
+      // ✅ Low Stock
       else if (product.quantity < product.minStockLevel) {
         alerts.push({
-          type: 'Low Stock',
+          ...baseAlert,
+          type: "Low Stock",
           message: `${product.productName} has low stock (${product.quantity} left).`,
-          productId: product._id,
         });
       }
 
-      // Expiry handling
+      // ✅ Expiry handling
       if (product.expiryDate) {
         const expiry = new Date(product.expiryDate);
-        const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+        const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
 
         if (diffDays < 0) {
           alerts.push({
-            type: 'Expired',
+            ...baseAlert,
+            type: "Expired",
             message: `${product.productName} expired on ${expiry.toLocaleDateString()}.`,
-            productId: product._id,
           });
         } else if (diffDays <= 7) {
           alerts.push({
-            type: 'Expiring Soon',
+            ...baseAlert,
+            type: "Expiring Soon",
             message: `${product.productName} will expire in ${diffDays} days.`,
-            productId: product._id,
           });
         }
       }
     });
 
-    // Return count + details
-    res.json({ count: alerts.length, alerts });
+    // ✅ Sort newest first
+    alerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({
+      count: alerts.length,
+      alerts,
+    });
   } catch (error) {
-    console.error('Error fetching alerts:', error);
-    res.status(500).json({ error: 'Failed to fetch alerts' });
+    console.error("Error fetching alerts:", error);
+    res.status(500).json({ error: "Failed to fetch alerts" });
   }
 });
 

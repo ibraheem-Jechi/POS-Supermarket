@@ -17,10 +17,14 @@ const cartSchema = new mongoose.Schema({
   subtotal: { type: Number, required: true, default: 0 },
   tax: { type: Number, required: true, default: 0 },
   total: { type: Number, required: true, default: 0 },
+  cashier: { type: String }, // اسم الكاشير (من POSPage)
+  createdAt: { type: Date, default: Date.now },
+  
+shiftId: { type: mongoose.Schema.Types.ObjectId, ref: "Shift", default: null },
+
   // loyalty points awarded for the sale
   loyaltyPoints: { type: Number, default: 0 },
-  cashier: { type: String, required: true }, 
-  createdAt: { type: Date, default: Date.now },
+  
    paymentMethod: { type: String, default: "cash" },  
 });
 
