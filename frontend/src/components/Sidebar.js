@@ -15,11 +15,10 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 
-function Sidebar({ user, setPage, setUser, collapsed }) {
+function Sidebar({ user, page, setPage, setUser, collapsed }) {
   const [alertCount, setAlertCount] = useState(0);
-  const [adminOpen, setAdminOpen] = useState(false); // ✅ Admin section toggle
+  const [adminOpen, setAdminOpen] = useState(false);
 
-  // === Fetch alert count from backend ===
   const fetchAlertsCount = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/alerts");
@@ -36,40 +35,20 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
     }
   };
 
-  // === Initial load + periodic refresh ===
   useEffect(() => {
     fetchAlertsCount();
-    // Listen for manual updates triggered elsewhere (e.g. after a sale)
-    const onAlertsUpdated = (e) => {
-      try {
-        const count = e?.detail?.count;
-        if (typeof count === "number") setAlertCount(count);
-        else fetchAlertsCount();
-      } catch (err) {
-        fetchAlertsCount();
-      }
-    };
-    window.addEventListener("alertsUpdated", onAlertsUpdated);
-    const id = setInterval(fetchAlertsCount, 30000);
-    return () => clearInterval(id);
-    // cleanup listener
-    // note: return only cleans interval; also remove listener on unmount
-    // so we remove it here via a separate cleanup
-  }, []);
-
-  useEffect(() => {
     const handler = (e) => {
       const count = e?.detail?.count;
       if (typeof count === "number") setAlertCount(count);
+      else fetchAlertsCount();
     };
     window.addEventListener("alertsUpdated", handler);
     return () => window.removeEventListener("alertsUpdated", handler);
   }, []);
 
-  // === Sidebar UI ===
   return (
     <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
-      {/* === User Info === */}
+      {/* HEADER */}
       <div className="sidebar-header">
         <p style={{ fontWeight: 600 }}>
           👋 Hello, {user.username}
@@ -78,36 +57,55 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         </p>
       </div>
 
-      {/* === Navigation Buttons === */}
-      <button className="nav-button" onClick={() => setPage("pos")}>
+      {/* POS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "pos" ? "active" : ""}`}
+        onClick={() => setPage("pos")}
+      >
         <FaCashRegister />
         <span>POS</span>
       </button>
 
-      <button className="nav-button" onClick={() => setPage("products")}>
+      {/* PRODUCTS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "products" ? "active" : ""}`}
+        onClick={() => setPage("products")}
+      >
         <FaBoxOpen />
         <span>Products</span>
       </button>
 
-      <button className="nav-button" onClick={() => setPage("suppliers")}>
+      {/* SUPPLIERS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "suppliers" ? "active" : ""}`}
+        onClick={() => setPage("suppliers")}
+      >
         <FaTruck />
-  <span>Suppliers</span>
-</button>
+        <span>Suppliers</span>
+      </button>
 
-
+      {/* ADMIN ONLY */}
       {user.role === "admin" && (
         <>
-          <button className="nav-button" onClick={() => setPage("dashboard")}>
+          {/* USER MANAGEMENT */}
+          <button
+            className={`nav-button ${page?.toLowerCase() === "dashboard" ? "active" : ""}`}
+            onClick={() => setPage("dashboard")}
+          >
             <FaChartLine />
             <span>User Management</span>
           </button>
 
-          <button className="nav-button" onClick={() => setPage("category")}>
+          {/* CATEGORIES */}
+          <button
+            className={`nav-button ${page?.toLowerCase() === "category" ? "active" : ""}`}
+            onClick={() => setPage("category")}
+          >
             <FaTags />
             <span>Categories</span>
           </button>
 
-          {/* === Collapsible Admin Section === */}
+          {/* ADMIN SUB MENU */}
           <div className="admin-section">
             <button
               className="nav-button"
@@ -127,13 +125,24 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
 
             {adminOpen && (
               <div className="admin-submenu" style={{ marginLeft: "25px" }}>
-                <button className="nav-button" onClick={() => setPage("tops")}>
+                <button
+                  className={`nav-button ${page?.toLowerCase() === "tops" ? "active" : ""}`}
+                  onClick={() => setPage("tops")}
+                >
                   <span>• TOPS</span>
                 </button>
-                <button className="nav-button" onClick={() => setPage("expenses")}>
+
+                <button
+                  className={`nav-button ${page?.toLowerCase() === "expenses" ? "active" : ""}`}
+                  onClick={() => setPage("expenses")}
+                >
                   <span>• EXPENSES</span>
                 </button>
-                <button className="nav-button" onClick={() => setPage("wins")}>
+
+                <button
+                  className={`nav-button ${page?.toLowerCase() === "wins" ? "active" : ""}`}
+                  onClick={() => setPage("wins")}
+                >
                   <span>• WINS</span>
                 </button>
               </div>
@@ -142,31 +151,44 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
         </>
       )}
 
-      <button className="nav-button" onClick={() => setPage("saleshistory")}>
+      {/* SALES HISTORY */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "saleshistory" ? "active" : ""}`}
+        onClick={() => setPage("saleshistory")}
+      >
         <FaHistory />
         <span>Sales History</span>
       </button>
 
-      <button className="nav-button" onClick={() => setPage("dailysummary")}>
+      {/* MAIN READING */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "dailysummary" ? "active" : ""}`}
+        onClick={() => setPage("dailysummary")}
+      >
         📖 Main Reading
       </button>
 
-      <button className="nav-button" onClick={() => setPage("reports")}>
+      {/* REPORTS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "reports" ? "active" : ""}`}
+        onClick={() => setPage("reports")}
+      >
         📑 Reports
       </button>
 
-      {/* === Alerts Button (with badge) === */}
-      <button className="nav-button" onClick={() => setPage("alerts")}>
+      {/* ALERTS */}
+      <button
+        className={`nav-button ${page?.toLowerCase() === "alerts" ? "active" : ""}`}
+        onClick={() => setPage("alerts")}
+      >
         <FaBell />
         <span>Alerts</span>
         {alertCount > 0 && (
-          <span className="badge" aria-label={`${alertCount} alerts`}>
-            {alertCount}
-          </span>
+          <span className="badge">{alertCount}</span>
         )}
       </button>
 
-      {/* === Logout === */}
+      {/* LOGOUT */}
       <button
         className={`logout-btn ${localStorage.getItem("activeShift") ? "disabled" : ""}`}
         onClick={() => {
@@ -181,8 +203,7 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
             return;
           }
 
-          const confirmLogout = window.confirm("Are you sure you want to log out?");
-          if (!confirmLogout) return;
+          if (!window.confirm("Are you sure you want to log out?")) return;
 
           localStorage.removeItem("user");
           localStorage.removeItem("page");
@@ -191,7 +212,8 @@ function Sidebar({ user, setPage, setUser, collapsed }) {
           setPage("");
         }}
       >
-        <FaSignOutAlt /> Logout
+        <FaSignOutAlt />
+        Logout
       </button>
     </div>
   );

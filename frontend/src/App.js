@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaBars } from "react-icons/fa"; // ✅ استيراد وحيد وصحيح
+import { FaBars } from "react-icons/fa"; 
 
 // Components
 import Sidebar from "./components/Sidebar";
@@ -14,8 +14,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import SalesHistory from "./pages/SalesHistory";
 import CategoryPage from "./pages/CategoryPage";
 import ProductsPage from "./pages/ProductsPage";
-import AlertsPage from "./pages/AlertsPage.js";   // ✅ FIXED
-import DailyReport from "./pages/DailyReport.js"; // ✅ FIXED
+import AlertsPage from "./pages/AlertsPage.js";
+import DailyReport from "./pages/DailyReport.js";
 import MonthlyReport from "./pages/MonthlyReport";
 import YearlyReport from "./pages/YearlyReport";
 import Reports from "./pages/Reports";
@@ -31,28 +31,30 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     const savedPage = localStorage.getItem("page");
+
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedPage) setPage(savedPage.toLowerCase());
   }, []);
 
-  // Persist user + page
+  // Persist user
   useEffect(() => {
     if (user) localStorage.setItem("user", JSON.stringify(user));
     else localStorage.removeItem("user");
   }, [user]);
 
-  // Save page in storage
+  // Persist page
   useEffect(() => {
-    if (page) localStorage.setItem("page", page);
+    if (page) localStorage.setItem("page", page.toLowerCase());
   }, [page]);
 
-  // If not logged in → show login page
   if (!user) {
     return (
       <LoginPage
         onLogin={(u) => {
           setUser(u);
-          setPage(u.role === "admin" ? "dashboard" : "pos");
+          const defaultPage = u.role === "admin" ? "dashboard" : "pos";
+          setPage(defaultPage);
+          localStorage.setItem("page", defaultPage);
         }}
       />
     );
@@ -78,6 +80,7 @@ function App() {
         background: "#f4f6f8",
       }}
     >
+
       {/* Hamburger Menu */}
       <FaBars
         className="hamburger"
@@ -89,25 +92,24 @@ function App() {
           fontSize: "24px",
           cursor: "pointer",
           zIndex: 1000,
-          color: "#374151",
-          background: "rgba(255,255,255,0.6)",
+          color: "#ffffff",
+          background: "rgba(0,0,0,0.7)",
           padding: "6px",
           borderRadius: "6px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
         }}
       />
 
       {/* Header */}
       <header
         style={{
-          background: "linear-gradient(90deg, #3a7bd5 0%, #00d2ff 100%)",
-          color: "#fff",
+          background: "#000000",
+          color: "#ffffff",
           padding: "18px 25px",
           textAlign: "center",
           fontWeight: "700",
           fontSize: "22px",
-          borderRadius: "0 0 px 12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
         }}
       >
         🛒 Supermarket POS
@@ -115,7 +117,15 @@ function App() {
 
       {/* Main Layout */}
       <div style={{ display: "flex", flex: 1 }}>
-        <Sidebar user={user} setPage={setPage} setUser={setUser} collapsed={collapsed} />
+
+        {/* Sidebar → ✅ هنا التعديل المهم */}
+        <Sidebar
+          user={user}
+          page={page}              // ✅ تم تمرير الصفحة
+          setPage={setPage}
+          setUser={setUser}
+          collapsed={collapsed}
+        />
 
         <main
           style={{
@@ -126,10 +136,8 @@ function App() {
             margin: "20px",
             boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
             backdropFilter: "blur(10px)",
-            transition: "margin-left 0.3s ease",
           }}
         >
-          {/* Route-based content */}
           {page === "dashboard" && <DashboardPage />}
           {page === "pos" && <POSPage user={user} />}
           {page === "products" && <ProductsPage />}
@@ -145,7 +153,6 @@ function App() {
           {page === "expenses" && <Expenses />}
           {page === "wins" && <Wins />}
           {page === "suppliers" && <SuppliersPage />}
-
         </main>
       </div>
     </div>

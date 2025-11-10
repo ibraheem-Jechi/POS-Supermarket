@@ -256,6 +256,7 @@ function AdminDashboard({ user }) {
         }}
       >
         <h3 style={{ marginBottom: "10px" }}>All Employees</h3>
+
         <table
           style={{
             width: "100%",
@@ -265,8 +266,8 @@ function AdminDashboard({ user }) {
           <thead>
             <tr
               style={{
-                background: "#f4f4f4",
-                textAlign: "left",
+                background: "#1e293b",
+                color: "white",
                 borderBottom: "2px solid #ddd",
               }}
             >
@@ -276,6 +277,7 @@ function AdminDashboard({ user }) {
               <th>Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {users.length === 0 ? (
               <tr>
@@ -291,17 +293,18 @@ function AdminDashboard({ user }) {
                   <td>${u.salary?.toFixed(2) || 0}</td>
                   <td>
                     <button
-                      className="edit-btn"
+                      className="action-btn edit"
                       onClick={() => handleEdit(u)}
-                      style={{ marginRight: "8px" }}
                     >
-                      Edit
+                      ✏️ Edit
                     </button>
+
                     <button
-                      className="delete-btn"
+                      className="action-btn delete"
                       onClick={() => handleDelete(u._id)}
+                      style={{ marginLeft: "10px" }}
                     >
-                      Delete
+                      🗑 Delete
                     </button>
                   </td>
                 </tr>
@@ -311,7 +314,7 @@ function AdminDashboard({ user }) {
         </table>
       </div>
 
-      {/* ======= SMALL STYLE ======= */}
+      {/* ======= STYLES ======= */}
       <style>{`
         .card {
           background: white;
@@ -338,7 +341,7 @@ function AdminDashboard({ user }) {
           min-width: 150px;
         }
         .btn-primary {
-          background: #2c3e50;
+          background: #1e293b;
           color: white;
           border: none;
           padding: 8px 16px;
@@ -346,7 +349,7 @@ function AdminDashboard({ user }) {
           cursor: pointer;
         }
         .btn-primary:hover {
-          background: #1a242f;
+          background: #0f172a;
         }
         .btn-cancel {
           background: #ccc;
@@ -356,28 +359,37 @@ function AdminDashboard({ user }) {
           border-radius: 6px;
           cursor: pointer;
         }
-        .edit-btn {
-          background: #3498db;
-          color: white;
+
+        /* ✅ Action buttons unified style */
+        .action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          border-radius: 6px;
           border: none;
-          padding: 5px 10px;
-          border-radius: 4px;
           cursor: pointer;
+          font-weight: 500;
+          transition: 0.2s;
+          font-size: 14px;
         }
-        .delete-btn {
-          background: #e74c3c;
+
+        .action-btn.edit {
+          background: #2563eb;
           color: white;
-          border: none;
-          padding: 5px 10px;
-          border-radius: 4px;
-          cursor: pointer;
         }
-        .edit-btn:hover {
-          background: #217dbb;
+        .action-btn.edit:hover {
+          background: #1e40af;
         }
-        .delete-btn:hover {
-          background: #c0392b;
+
+        .action-btn.delete {
+          background: #ef4444;
+          color: white;
         }
+        .action-btn.delete:hover {
+          background: #b91c1c;
+        }
+
       `}</style>
     </div>
   );
