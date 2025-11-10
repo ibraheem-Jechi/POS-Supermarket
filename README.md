@@ -6,6 +6,8 @@ This system is designed for admins and cashiers to easily handle day-to-day stor
 
 🚀 Features Overview
 
+![Login Page](https://i.imgur.com/O2Kfzrr.png)
+
 💳 POS (Point of Sale)
 
 User-friendly sales interface for cashiers.
@@ -20,6 +22,8 @@ Print daily and monthly reports.
 
 Real-time sales summary dashboard.
 
+![POS Page](https://i.imgur.com/3Ztm9wk.png)
+
 📦 Product Management
 
 Add, edit, and delete products.
@@ -32,6 +36,8 @@ Highlights low stock and expired items.
 
 Batch and supplier tracking.
 
+![Product Page](https://i.imgur.com/wWEGBl0.png)
+
 🚚 Supplier Management
 
 Add and manage supplier details (name, contact person, phone, email, and address).
@@ -39,6 +45,8 @@ Add and manage supplier details (name, contact person, phone, email, and address
 Supplier contacts automatically linked to products.
 
 Edit or remove suppliers anytime.
+
+![Supplier Page](https://i.imgur.com/k7AqNmA.png)
 
 👥 User Management
 
@@ -54,11 +62,15 @@ Track total users, total salaries, and roles.
 
 Edit or remove users with a single click.
 
+![User Management Page](https://i.imgur.com/CTdBGFf.png)
+
 🧺 Categories Management
 
 Add, view, or delete product categories dynamically.
 
 Categories displayed in the POS for easy product filtering.
+
+![Categories Page](https://i.imgur.com/SOiJFmY.png)
 
 💵 Expenses Management
 
@@ -70,6 +82,9 @@ View total monthly expenses and detailed breakdown.
 
 Edit or delete expenses easily.
 
+![Expenses Page](https://i.imgur.com/EbsjfRs.png)
+
+
 📊 Reports & Analytics
 
 Monthly, yearly, and daily performance visualization.
@@ -79,6 +94,8 @@ Charts showing Sales, Expenses, and Profit over time.
 Detailed tabular report for each month.
 
 Identify trends in store performance.
+
+![Reports Page](https://i.imgur.com/vtlDwzF.png)
 
 🧾 Sales History
 
@@ -90,6 +107,9 @@ Calculate average sale per receipt.
 
 View, edit, or delete transactions.
 
+![Sales History Page](https://i.imgur.com/aSN9ZFz.png)
+
+
 📈 TOPS (Performance Reports)
 
 Top 10 Products — based on units sold and revenue.
@@ -100,6 +120,9 @@ Top 5 Categories — based on performance.
 
 Helps management analyze productivity and trends.
 
+![Tops Page](https://i.imgur.com/LPwz2sk.png)
+
+
 💰 Daily Sales Report
 
 Generates reports for specific dates.
@@ -109,6 +132,9 @@ Displays overall summary including Total Invoices, Subtotal, Tax, and Total.
 Lists all invoices with cashier names, time, and itemized details.
 
 Supports printing for documentation.
+
+![Main Reading Page](https://i.imgur.com/sgjRvNC.png)
+
 
 🚨 Alerts & Notifications
 
@@ -121,6 +147,9 @@ Out of Stock
 Expired Items
 
 Helps prevent sales interruptions and ensures inventory accuracy.
+
+![Alerts Page](https://i.imgur.com/CmlEWdX.png)
+
 
 🧠 Tech Stack
     Layer	                Technology
