@@ -167,7 +167,7 @@ export default function POSPage({ user }) {
     }
   };
 
-  // ✅ Complete sale
+  // ✅ Complete sale (updated)
   const completeSale = async () => {
     if (!lines.length) return alert("Cart is empty");
     if (!activeShift) {
@@ -192,8 +192,28 @@ export default function POSPage({ user }) {
         paymentMethod, // ✅ include payment method
       };
 
+      // ✅ 1️⃣ Record sale
       const saleRes = await axios.post("http://localhost:5000/api/sales", cartData);
 
+      // ✅ 2️⃣ Decrease product quantities
+      await axios.post("http://localhost:5000/api/products/decrease-stock", {
+        items: lines.map((i) => ({ productId: i.productId, qty: i.qty })),
+      });
+
+      // ✅ 3️⃣ Refresh alerts right after stock update
+      try {
+        const alertsRes = await api.get("/alerts");
+        const count =
+          alertsRes.data?.count ??
+          (Array.isArray(alertsRes.data) ? alertsRes.data.length : 0);
+
+        window.dispatchEvent(new CustomEvent("alertsUpdated", { detail: { count } }));
+        console.log("🔔 Alerts updated after sale:", count);
+      } catch (err) {
+        console.warn("Failed to refresh alerts after sale:", err);
+      }
+
+      // ✅ 4️⃣ Prepare invoice
       setInvoiceData({
         invoiceNumber: saleRes.data.invoiceNumber,
         items: lines,
@@ -381,14 +401,23 @@ export default function POSPage({ user }) {
                       <div className="text-muted">${i.price.toFixed(2)} each</div>
                     </div>
                     <div className="d-flex align-items-center gap-1">
-                      <button onClick={() => decQty(i.productId)} className="btn btn-outline-secondary btn-sm">
+                      <button
+                        onClick={() => decQty(i.productId)}
+                        className="btn btn-outline-secondary btn-sm"
+                      >
                         -
                       </button>
                       <span>{i.qty}</span>
-                      <button onClick={() => incQty(i.productId)} className="btn btn-outline-secondary btn-sm">
+                      <button
+                        onClick={() => incQty(i.productId)}
+                        className="btn btn-outline-secondary btn-sm"
+                      >
                         +
                       </button>
-                      <button onClick={() => removeItem(i.productId)} className="btn btn-link text-danger p-0 ms-2">
+                      <button
+                        onClick={() => removeItem(i.productId)}
+                        className="btn btn-link text-danger p-0 ms-2"
+                      >
                         remove
                       </button>
                     </div>
@@ -464,6 +493,9 @@ export default function POSPage({ user }) {
                   <strong>Tax:</strong>
                   <span>${invoiceData.tax.toFixed(2)}</span>
                 </div>
+…and continuing from the last part you pasted, just close it like this:
+
+```jsx
                 <div className="d-flex justify-content-between fs-5 mt-2">
                   <strong>Total:</strong>
                   <strong>${invoiceData.total.toFixed(2)}</strong>
