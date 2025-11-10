@@ -190,23 +190,52 @@
   font-size: 18px;
 }
 
+/* === ✅ CUSTOM BUTTONS (Complete Sale + Print Invoice) === */
+
 .checkout {
   width: 100%;
   margin-top: 12px;
-  background: var(--brand);
-  color: var(--brand-ink);
-  border: none;
+  background: #ffffff;              /* ✅ مثل الـ chips */
+  color: #000000;
+  border: 1px solid var(--border);  /* ✅ خط رمادي */
   padding: 12px;
-  border-radius: 10px;
-  font-weight: 700;
+  border-radius: 999px;             /* ✅ شكل chip */
+  font-weight: 600;
   cursor: pointer;
-  transition: filter 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .checkout:hover {
-  filter: brightness(0.95);
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-color: var(--brand);
 }
 
+/* === Print Invoice === */
+.print-invoice {
+  width: 100%;
+  margin-top: 12px;
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.print-invoice:hover {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-color: var(--brand);
+}
+
+/* === Barcode input === */
 .barcode-row input {
   width: 100%;
   margin: 6px 0 10px;
@@ -277,12 +306,6 @@
     font-size: 16px;
     margin-bottom: 8px;
     text-align: center;
-  }
-
-  #invoice ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
   }
 
   #invoice li {

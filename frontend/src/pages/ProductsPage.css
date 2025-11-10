@@ -1,3 +1,7 @@
+/* =============================
+   PRODUCTS PAGE STYLE
+============================= */
+
 .products-container {
   background: #fff;
   padding: 20px 25px;
@@ -6,7 +10,14 @@
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* 🔹 Search bar */
+/* ✅ Title */
+.products-container h2 {
+  margin-bottom: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* ✅ Search bar */
 .search-bar {
   width: 100%;
   padding: 10px 14px;
@@ -17,7 +28,7 @@
   font-size: 15px;
 }
 
-/* 🔹 Form Layout */
+/* ✅ Product Form Layout */
 .product-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -27,6 +38,18 @@
   padding: 15px;
   border-radius: 10px;
   border: 1px solid #e5e7eb;
+}
+
+.product-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-form .form-group label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
 }
 
 .product-form input,
@@ -45,10 +68,10 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
-/* 🔹 Buttons */
+/* ✅ Buttons */
 .btn-submit {
-  background: #f97316;
-  color: #fff;
+  background: #1e293b; /* نفس لون header */
+  color: #ffffff;
   border: none;
   border-radius: 6px;
   font-weight: 600;
@@ -58,7 +81,7 @@
 }
 
 .btn-submit:hover {
-  background: #ea580c;
+  background: #0f172a;
 }
 
 .btn-cancel {
@@ -76,7 +99,7 @@
   background: #d1d5db;
 }
 
-/* 🔹 Table */
+/* ✅ Table */
 .table-wrapper {
   overflow-x: auto;
 }
@@ -87,23 +110,17 @@
   margin-top: 10px;
 }
 
-.products-table th,
+.products-table th {
+  background: #1e293b;
+  color: #fff;
+  padding: 12px;
+  font-size: 14px;
+}
+
 .products-table td {
   border: 1px solid #e5e7eb;
   padding: 10px;
   text-align: center;
-}
-
-.products-table th {
-  background: #1e293b;
-  color: #fff;
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.products-table td {
-  font-size: 14px;
-  color: #111827;
   background: #f9fafb;
 }
 
@@ -111,46 +128,45 @@
   background: #f3f4f6;
 }
 
-/* 🔹 Status badges */
+/* ✅ Status badges */
 .status-badge {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 999px;
   color: #fff;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
-/* 🔹 Action buttons */
-.btn-edit {
-  background: #3b82f6;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  padding: 5px 8px;
-  margin-right: 5px;
+/* ✅ ACTION ICON BUTTONS */
+.action-icons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.action-btn {
   cursor: pointer;
+  font-size: 18px;
+  transition: 0.2s ease;
 }
 
-.btn-edit:hover {
-  background: #2563eb;
+.action-btn.edit {
+  color: #2563eb;
 }
 
-.btn-delete {
-  background: #ef4444;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  padding: 5px 8px;
-  cursor: pointer;
+.action-btn.edit:hover {
+  color: #1d4ed8;
 }
 
-.btn-delete:hover {
-  background: #dc2626;
+.action-btn.delete {
+  color: #ef4444;
 }
 
-/* 🔹 Pagination */
+.action-btn.delete:hover {
+  color: #dc2626;
+}
+
+/* ✅ Pagination */
 .pagination {
   display: flex;
   justify-content: center;
@@ -164,7 +180,6 @@
   border: none;
   cursor: pointer;
   background: #e2e8f0;
-  transition: 0.2s ease;
 }
 
 .pagination button.active {
@@ -175,33 +190,4 @@
 
 .pagination button:hover:not(.active) {
   background: #cbd5e1;
-}
-/* 🔹 Labels above inputs */
-.product-form .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.product-form .form-group label {
-  font-weight: 600;
-  font-size: 13px;
-  color: #374151;
-  margin-bottom: 2px;
-}
-
-.product-form .form-group input,
-.product-form .form-group select {
-  height: 38px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 6px 10px;
-}
-
-.product-form .full-width {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 8px;
 }

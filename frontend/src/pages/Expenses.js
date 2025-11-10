@@ -21,7 +21,6 @@ export default function Expenses() {
       : "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [filterMonth, setFilterMonth] = useState(
     new Date().toISOString().slice(0, 7)
   );
@@ -32,16 +31,11 @@ export default function Expenses() {
   // === Fetch all expenses ===
   const loadExpenses = async () => {
     try {
-      setLoading(true);
       const res = await fetch("http://localhost:5000/api/expenses");
-      if (!res.ok) throw new Error("Failed to fetch expenses");
       const data = await res.json();
       setExpenses(data);
     } catch (err) {
       console.error(err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -49,7 +43,6 @@ export default function Expenses() {
   const loadSummary = async () => {
     try {
       const res = await fetch("http://localhost:5000/api/expenses/summary/monthly");
-      if (!res.ok) throw new Error("Failed to fetch summary");
       const data = await res.json();
       const formatted = data.map((item) => ({
         month: `${item._id.year}-${String(item._id.month).padStart(2, "0")}`,
@@ -64,21 +57,20 @@ export default function Expenses() {
   // === Add or Update Expense ===
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.category || !form.amount) return alert("Please fill all required fields");
+    if (!form.category || !form.amount) return alert("Please fill required fields");
 
     try {
-      setLoading(true);
       const method = editId ? "PUT" : "POST";
       const url = editId
         ? `http://localhost:5000/api/expenses/${editId}`
         : "http://localhost:5000/api/expenses";
 
-      const res = await fetch(url, {
+      await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error("Failed to save expense");
+
       setForm({
         category: "",
         description: "",
@@ -90,22 +82,16 @@ export default function Expenses() {
       await loadExpenses();
       await loadSummary();
     } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
+      alert("Error saving expense");
     }
   };
 
   // === Delete Expense ===
   const deleteExpense = async (id) => {
     if (!window.confirm("Delete this expense?")) return;
-    try {
-      await fetch(`http://localhost:5000/api/expenses/${id}`, { method: "DELETE" });
-      await loadExpenses();
-      await loadSummary();
-    } catch (err) {
-      console.error(err);
-    }
+    await fetch(`http://localhost:5000/api/expenses/${id}`, { method: "DELETE" });
+    await loadExpenses();
+    await loadSummary();
   };
 
   // === Edit Expense ===
@@ -120,7 +106,7 @@ export default function Expenses() {
     setEditId(exp._id);
   };
 
-  // === Filtered Expenses ===
+  // === Filters ===
   const filtered = expenses.filter((e) => {
     const d = new Date(e.date);
     const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -255,15 +241,16 @@ export default function Expenses() {
                 <td className="border p-2 text-center space-x-2">
                   <button
                     onClick={() => editExpense(e)}
-                    className="bg-yellow-400 text-white px-2 py-1 rounded hover:bg-yellow-500"
+                    className="action-btn edit"
                   >
-                    Edit
+                    ✏️ Edit
                   </button>
+
                   <button
                     onClick={() => deleteExpense(e._id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                    className="action-btn delete"
                   >
-                    Delete
+                    🗑 Delete
                   </button>
                 </td>
               </tr>
@@ -285,6 +272,36 @@ export default function Expenses() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* === Inline CSS for action buttons === */}
+      <style>{`
+        .action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          font-size: 14px;
+          cursor: pointer;
+          font-weight: 500;
+          border-radius: 6px;
+          border: none;
+          transition: 0.2s ease;
+        }
+        .action-btn.edit {
+          background: #2563eb;
+          color: white;
+        }
+        .action-btn.edit:hover {
+          background: #1e40af;
+        }
+        .action-btn.delete {
+          background: #ef4444;
+          color: white;
+        }
+        .action-btn.delete:hover {
+          background: #b91c1c;
+        }
+      `}</style>
     </div>
   );
 }

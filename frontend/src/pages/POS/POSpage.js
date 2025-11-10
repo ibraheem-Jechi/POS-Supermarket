@@ -13,7 +13,7 @@ export default function POSPage({ user }) {
   const [barcode, setBarcode] = useState("");
   const [invoiceData, setInvoiceData] = useState(null);
   const [loyaltyPointsEarned, setLoyaltyPointsEarned] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState("Cash"); // ✅ Default payment method
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
 
   const [activeShift, setActiveShift] = useState(() => {
     const cached = localStorage.getItem("activeShift");
@@ -27,15 +27,12 @@ export default function POSPage({ user }) {
       .get("/products")
       .then((res) => setProducts(res.data))
       .catch((e) => {
-        console.error("Failed to load products:", e);
-        setErr(
-          e.response?.data?.message || e.message || "Failed to load products"
-        );
+        setErr(e.response?.data?.message || "Failed to load products");
       })
       .finally(() => setLoading(false));
   }, []);
 
-  // ✅ Load current active shift
+  // ✅ Load shift
   useEffect(() => {
     const cashier = user?.username;
     if (!cashier) return;
@@ -57,14 +54,14 @@ export default function POSPage({ user }) {
       .catch(() => {});
   }, [user]);
 
-  // ✅ Category filtering
+  // ✅ Categories
   const categories = useMemo(
-    () => ["All", ...Array.from(new Set(products.map((p) => p.productCategory)))],
+    () => ["All", ...new Set(products.map((p) => p.productCategory))],
     [products]
   );
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = query.toLowerCase();
     return products.filter((p) => {
       const matchText =
         !q ||
@@ -122,74 +119,59 @@ export default function POSPage({ user }) {
 
   // ✅ Shift control
   const startShift = async () => {
-    if (activeShift) {
-      alert("⚠️ You already have an active shift.");
-      return;
-    }
-    if (!user || !user.username) {
-      alert("⚠️ You must be logged in to start a shift.");
-      return;
-    }
+    if (activeShift) return alert("⚠️ Shift already active.");
 
-    const confirmStart = window.confirm(`🟢 Start your shift as ${user.username}?`);
+    const confirmStart = window.confirm(`🟢 Start shift as ${user.username}?`);
     if (!confirmStart) return;
 
     try {
       const res = await axios.post("http://localhost:5000/api/shifts/start", {
-        cashier: user?.username,
+        cashier: user.username,
       });
       setActiveShift(res.data);
       localStorage.setItem("activeShift", JSON.stringify(res.data));
       alert(`✅ Shift started at ${new Date(res.data.startTime).toLocaleTimeString()}`);
     } catch (err) {
-      const serverMsg = err?.response?.data?.message || err?.message || "Could not start shift";
-      console.error("Start shift error:", err);
-      alert(`❌ Could not start shift: ${serverMsg}`);
+      alert("❌ Could not start shift.");
     }
   };
 
   const endShift = async () => {
-    if (!activeShift) return alert("⚠️ You have no active shift to end.");
+    if (!activeShift) return alert("⚠️ No active shift.");
     const confirmEnd = window.confirm(`🔴 End shift for ${user.username}?`);
     if (!confirmEnd) return;
 
     try {
       const res = await axios.post("http://localhost:5000/api/shifts/end", {
-        cashier: user?.username,
+        cashier: user.username,
       });
       setActiveShift(null);
       localStorage.removeItem("activeShift");
       alert(`✅ Shift ended. Total sales: $${(res.data?.totalSales || 0).toFixed(2)}`);
-    } catch (err) {
-      console.error("End shift error:", err);
-      const serverMsg = err?.response?.data?.message || err?.message || "Could not end shift";
-      alert(`❌ Could not end shift: ${serverMsg}`);
+    } catch {
+      alert("❌ Could not end shift.");
     }
   };
 
   // ✅ Complete sale (updated)
   const completeSale = async () => {
-    if (!lines.length) return alert("Cart is empty");
+    if (!lines.length) return alert("Cart is empty!");
+
     if (!activeShift) {
-      const proceed = window.confirm("No active shift. Start one before selling?");
+      const proceed = window.confirm("No active shift. Start one?");
       if (proceed) await startShift();
       else return;
     }
 
     try {
       const cartData = {
-        lines: lines.map((i) => ({
-          productId: i.productId,
-          name: i.name,
-          price: i.price,
-          qty: i.qty,
-        })),
+        lines,
         subtotal,
         tax,
         total,
-        cashier: user?.username || "unknown",
+        cashier: user.username,
         shiftId: activeShift?._id || null,
-        paymentMethod, // ✅ include payment method
+        paymentMethod,
       };
 
       // ✅ 1️⃣ Record sale
@@ -220,24 +202,24 @@ export default function POSPage({ user }) {
         subtotal,
         tax,
         total,
-        cashier: user?.username,
+        cashier: user.username,
         date: new Date().toLocaleString(),
         paymentMethod,
       });
 
       setLoyaltyPointsEarned(saleRes.data.loyaltyPoints || 0);
-      alert(`✅ Sale complete! Invoice #${saleRes.data.invoiceNumber}`);
       setCart({});
-    } catch (err) {
-      console.error("❌ Sale failed:", err);
-      alert("❌ Sale failed");
+    } catch {
+      alert("❌ Sale failed.");
     }
   };
 
-  // ✅ Thermal printer layout
+  // ✅ Print receipt
   const handlePrint = () => {
     if (!invoiceData) return;
+
     const printWindow = window.open("", "", "width=400,height=600");
+
     printWindow.document.write(`
       <html>
         <head>
@@ -246,9 +228,9 @@ export default function POSPage({ user }) {
             @page { size: 80mm auto; margin: 0; }
             body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; width: 80mm; }
             .center { text-align: center; }
-            hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
-            table { width: 100%; border-collapse: collapse; }
-            td { padding: 2px 0; }
+            hr { border: 1px dashed #000; }
+            table { width: 100%; }
+            TD { padding: 2px 0; }
             .bold { font-weight: bold; }
           </style>
         </head>
@@ -258,7 +240,8 @@ export default function POSPage({ user }) {
           <div class="center">Cashier: ${invoiceData.cashier}</div>
           <div class="center">${invoiceData.date}</div>
           <div class="center">Payment: ${invoiceData.paymentMethod}</div>
-          <hr>
+          <hr />
+
           <table>
             ${invoiceData.items
               .map(
@@ -270,19 +253,19 @@ export default function POSPage({ user }) {
               )
               .join("")}
           </table>
-          <hr>
+
+          <hr />
+
           <table>
             <tr><td>Subtotal:</td><td style="text-align:right;">$${invoiceData.subtotal.toFixed(2)}</td></tr>
-            <tr><td>Tax (11%):</td><td style="text-align:right;">$${invoiceData.tax.toFixed(2)}</td></tr>
+            <tr><td>Tax:</td><td style="text-align:right;">$${invoiceData.tax.toFixed(2)}</td></tr>
             <tr><td class="bold">Total:</td><td style="text-align:right;" class="bold">$${invoiceData.total.toFixed(2)}</td></tr>
           </table>
-          <hr>
+
+          <hr />
+
           <div class="center">🎁 Loyalty Points: ${loyaltyPointsEarned}</div>
-          <hr>
-          <div class="center">
-            Thank you for shopping!<br/>
-            ${new Date().toLocaleString()}
-          </div>
+
           <script>
             window.onload = function() {
               window.print();
@@ -292,9 +275,11 @@ export default function POSPage({ user }) {
         </body>
       </html>
     `);
+
     printWindow.document.close();
   };
 
+  // ✅ Scan barcode
   const onBarcodeEnter = (e) => {
     if (e.key === "Enter") {
       const p = products.find((p) => (p.barcode || "") === barcode.trim());
@@ -305,19 +290,30 @@ export default function POSPage({ user }) {
 
   return (
     <div className="container-fluid bg-light min-vh-100 p-4">
-      {/* ✅ Shift Controls */}
+
+      {/* === Shift Controls === */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="d-flex gap-2">
-          <button className="btn btn-success" onClick={startShift} disabled={!!activeShift}>
+          <button
+            className="btn btn-success"
+            onClick={startShift}
+            disabled={!!activeShift}
+          >
             ▶ Start Shift
           </button>
-          <button className="btn btn-danger" onClick={endShift} disabled={!activeShift}>
+
+          <button
+            className="btn btn-danger"
+            onClick={endShift}
+            disabled={!activeShift}
+          >
             ■ End Shift
           </button>
         </div>
+
         {activeShift ? (
           <div className="alert alert-primary py-1 px-2 mb-0">
-            <strong>Active Shift:</strong> {user?.username} ·{" "}
+            <strong>Active Shift:</strong> {user.username} ·{" "}
             {new Date(activeShift.startTime).toLocaleTimeString()}
           </div>
         ) : (
@@ -326,21 +322,24 @@ export default function POSPage({ user }) {
       </div>
 
       <div className="row">
+
         {/* === Products === */}
         <div className="col-md-8 mb-4">
           <div className="card shadow-sm p-3 h-100">
+
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search products..."
               className="form-control mb-3"
             />
+
             <div className="mb-3 d-flex flex-wrap gap-2">
               {categories.map((c) => (
                 <button
                   key={c}
                   className={`btn btn-sm ${
-                    category === c ? "btn-primary text-white" : "btn-outline-secondary"
+                    category === c ? "btn-dark text-white" : "btn-outline-secondary"
                   }`}
                   onClick={() => setCategory(c)}
                 >
@@ -426,7 +425,7 @@ export default function POSPage({ user }) {
               </ul>
             )}
 
-            {/* ✅ Payment method selector */}
+            {/* === Payment Method === */}
             <div className="mb-3">
               <label className="form-label fw-bold">Payment Method</label>
               <select
@@ -439,29 +438,38 @@ export default function POSPage({ user }) {
               </select>
             </div>
 
+            {/* === Totals === */}
             <div className="mb-3">
               <div className="d-flex justify-content-between">
                 <span>Subtotal</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
+
               <div className="d-flex justify-content-between">
                 <span>Tax (11%)</span>
                 <span>${tax.toFixed(2)}</span>
               </div>
+
               <div className="d-flex justify-content-between fw-bold fs-5">
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
             </div>
 
-            <button onClick={completeSale} className="btn btn-primary w-100 mb-2">
-              Complete Sale
+            {/* === Complete Sale === */}
+            <button
+              onClick={completeSale}
+              className="btn btn-dark w-100 mb-2 py-2 fw-bold"
+              style={{ borderRadius: "10px" }}
+            >
+              ✅ Complete Sale
             </button>
 
-            {/* ✅ Invoice */}
+            {/* === Invoice === */}
             {invoiceData && (
               <div id="invoice" className="card p-3 mt-3 shadow-sm">
                 <h5 className="text-center mb-3">Supermarket Invoice</h5>
+
                 <p>
                   <strong>Invoice #:</strong> {invoiceData.invoiceNumber}
                   <br />
@@ -471,24 +479,26 @@ export default function POSPage({ user }) {
                   <br />
                   <strong>Payment:</strong> {invoiceData.paymentMethod}
                 </p>
+
                 <hr />
+
                 <ul className="list-group mb-3">
                   {invoiceData.items.map((i) => (
                     <li
                       key={i.productId}
-                      className="list-group-item d-flex justify-content-between align-items-center"
+                      className="list-group-item d-flex justify-content-between"
                     >
-                      <div>
-                        {i.name} × {i.qty}
-                      </div>
-                      <div>${(i.price * i.qty).toFixed(2)}</div>
+                      <span>{i.name} × {i.qty}</span>
+                      <span>${(i.price * i.qty).toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>
+
                 <div className="d-flex justify-content-between">
                   <strong>Subtotal:</strong>
                   <span>${invoiceData.subtotal.toFixed(2)}</span>
                 </div>
+
                 <div className="d-flex justify-content-between">
                   <strong>Tax:</strong>
                   <span>${invoiceData.tax.toFixed(2)}</span>
@@ -500,25 +510,33 @@ export default function POSPage({ user }) {
                   <strong>Total:</strong>
                   <strong>${invoiceData.total.toFixed(2)}</strong>
                 </div>
+
                 <hr />
-                <p className="text-center text-success mb-2">
+
+                <p className="text-center text-success">
                   🎁 Loyalty Points: {loyaltyPointsEarned}
                 </p>
 
-                {/* ✅ Print + Close Buttons */}
-                <div className="d-flex flex-column gap-2">
-                  <button className="btn btn-success w-100" onClick={handlePrint}>
-                    🖨️ Print Invoice
-                  </button>
-                  <button
-                    className="btn btn-outline-danger w-100"
-                    onClick={() => setInvoiceData(null)}
-                  >
-                    ❌ Close
-                  </button>
-                </div>
+                {/* === Print & Close === */}
+                <button
+                  className="btn btn-dark w-100 mb-2 fw-bold py-2"
+                  style={{ borderRadius: "10px" }}
+                  onClick={handlePrint}
+                >
+                  🖨️ Print Invoice
+                </button>
+
+                <button
+                  className="btn btn-outline-secondary w-100 fw-bold py-2"
+                  style={{ borderRadius: "10px" }}
+                  onClick={() => setInvoiceData(null)}
+                >
+                  ❌ Close Invoice
+                </button>
+
               </div>
             )}
+
           </div>
         </div>
       </div>
